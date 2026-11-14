@@ -458,8 +458,18 @@ td { font-family: var(--mono); white-space: nowrap; }
 .plain.tight { margin: 0; }
 .plain.tight li { padding: 8px 0; font-size: 0.875rem; }
 .todo { margin: 0; padding: 0; list-style: none; counter-reset: todo; border-top: 1px solid var(--line); }
-.todo li { counter-increment: todo; display: grid; grid-template-columns: 28px 1fr; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 0.9375rem; color: var(--ink); }
-.todo li::before { content: counter(todo, decimal-leading-zero); font-family: var(--mono); font-size: 0.75rem; color: var(--muted); padding-top: 2px; }
+.todo li { border-bottom: 1px solid var(--line); font-size: 0.9375rem; color: var(--ink); }
+.todo label { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: start; gap: 10px; padding: 11px 0; cursor: pointer; line-height: 1.5; }
+.todo input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); }
+.todo label.is-done span { color: var(--muted); }
+.readiness-plan { display: flex; flex-direction: column; gap: 10px; }
+.readiness-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.readiness-head > div { display: flex; flex-direction: column; gap: 3px; }
+.readiness-head strong { color: var(--ink); font-size: 0.875rem; }
+.readiness-head span { color: var(--muted); font-size: 0.8125rem; }
+.readiness-head .text-btn { flex: none; min-height: 32px; }
+.readiness-track { height: 5px; overflow: hidden; background: var(--surface-3); }
+.readiness-track span { display: block; height: 100%; background: var(--accent); transition: width 180ms ease; }
 .safety-call { font-size: 0.9375rem; color: var(--ink-2); }
 .safety-call b { font-size: 1.25rem; font-weight: 500; color: var(--ink); margin-left: 8px; }
 .safety a { color: var(--accent); text-underline-offset: 3px; }
@@ -602,10 +612,23 @@ td { font-family: var(--mono); white-space: nowrap; }
 .home-more .ov-head h2 { margin: 0; font-size: 1.0625rem; }
 .home-more .live-row { padding: 11px 13px; }
 .bulletin-details { border-bottom: 1px solid var(--line-2); }
-.bulletin-details > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 12px 24px; cursor: pointer; list-style: none; font-weight: 600; color: var(--ink); }
+.bulletin-details > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; row-gap: 2px; min-height: 60px; padding: 12px 24px; cursor: pointer; list-style: none; font-weight: 600; color: var(--ink); }
+.bulletin-details > summary > span:first-child { grid-column: 1; grid-row: 1; min-width: 0; }
+.bulletin-details > summary > .block-src { grid-column: 1; grid-row: 2; text-align: left; }
+.bulletin-details > summary::after { grid-column: 2; grid-row: 1 / 3; align-self: center; }
 .bulletin-details[open] > summary { border-bottom: 1px solid var(--line); }
 .bulletin-details .safety { border-bottom: 0; }
 @media (max-width: 860px) {
   .home-more .dash-globe { height: 84vw; max-height: 400px; }
   .bulletin-details > summary { padding-right: 16px; padding-left: 16px; }
+}
+
+.cmp-interpret { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 14px; align-items: start; margin: 18px 0 28px; padding: 16px 20px; border-left: 3px solid var(--accent); background: var(--surface-2); }
+.cmp-interpret-mark { display: grid; place-items: center; width: 34px; height: 34px; color: var(--accent); background: var(--surface); border: 1px solid var(--line-2); font-size: 1.125rem; }
+.cmp-interpret h2 { margin: 0 0 6px; color: var(--muted); font: 500 0.6875rem/1.4 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; }
+.cmp-interpret p { margin: 0; color: var(--ink); font-size: 0.9375rem; line-height: 1.55; }
+.cmp-interpret small { display: block; margin-top: 8px; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
+@media (max-width: 860px) {
+  .cmp-interpret { grid-template-columns: 28px minmax(0, 1fr); gap: 10px; padding: 14px; }
+  .cmp-interpret-mark { width: 28px; height: 28px; }
 }

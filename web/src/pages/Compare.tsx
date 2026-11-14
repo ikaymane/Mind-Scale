@@ -48,6 +48,7 @@ export function Compare({ data }: { data: Dataset }) {
   if (!region || !A || !B) return <main className="home" id="main"><p className="state">{tt.t('bulletin.noData')}</p></main>;
   const cleaning = data.meta.cleaning?.[SENSOR]?.[region.country];
   const name = regionName(region);
+  const takeawayChange = A.total > 0 ? pctChange(A.total, B.total) : tt.t('compare.takeawayNoBase');
 
   const row = (label: string, va: string, vb: string, change: string, d: number | null = null, note?: string) => (
     <tr key={label}>
@@ -118,6 +119,24 @@ export function Compare({ data }: { data: Dataset }) {
           </dd>
         </div>
       </dl>
+
+      <section className="cmp-interpret" aria-labelledby="cmp-interpret-title">
+        <span className="cmp-interpret-mark mono" aria-hidden="true">→</span>
+        <div>
+          <h2 id="cmp-interpret-title">{tt.t('compare.takeawayTitle')}</h2>
+          <p>{tt.t('compare.takeaway', {
+            name,
+            a,
+            b,
+            aCount: tt.num(A.total),
+            bCount: tt.num(B.total),
+            change: takeawayChange,
+            aPeak: peak(A),
+            bPeak: peak(B),
+          })}</p>
+          <small>{tt.t('compare.takeawayCaveat')}</small>
+        </div>
+      </section>
 
       <div className="cmp-grid" data-tour="compare">
         <section>

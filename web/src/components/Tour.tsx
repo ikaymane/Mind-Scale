@@ -70,7 +70,8 @@ export function Tour() {
   // ?tour=1 starts the tour for demo links; first-time visitors get a dismissible offer.
   useEffect(() => {
     if (new URLSearchParams(location.search).get('tour') === '1') { useTour.getState().start(); return; }
-    if (page !== 'home' || wasSeen()) return;
+    if (page !== 'home') { setOffer(false); return; }
+    if (wasSeen()) return;
     const timer = window.setTimeout(() => setOffer(true), 800);
     return () => clearTimeout(timer);
   }, [page]);

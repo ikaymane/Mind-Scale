@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useT } from '../i18n';
 import { useSensor, type Dataset } from '../lib/data';
 import { dayRange, monthsLabel } from '../lib/format';
@@ -6,6 +6,70 @@ import { useNow } from '../lib/now';
 import { driversOf, monthsToSeason, seasonOf } from '../lib/season';
 import { levelRank } from '../levels';
 import { LevelBadge } from '../components/Level';
+
+type ChecklistState = { key: string; done: boolean[] };
+
+function readChecklist(key: string, count: number): boolean[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) ?? '[]') as unknown;
+    return Array.from({ length: count }, (_, i) => Array.isArray(parsed) && parsed[i] === true);
+  } catch {
+    return Array.from({ length: count }, () => false);
+  }
+}
+
+function ReadinessChecklist({ regionId, mode, items }: { regionId: string; mode: 'active' | 'prepare'; items: string[] }) {
+  const tt = useT();
+  const year = new Date().getUTCFullYear();
+  const key = `niran.readiness.v1.${regionId}.${year}.${mode}`;
+  const [saved, setSaved] = useState<ChecklistState>(() => ({ key, done: readChecklist(key, items.length) }));
+  const done = saved.key === key ? saved.done : readChecklist(key, items.length);
+  const count = done.filter(Boolean).length;
+  const complete = count === items.length;
+
+  useEffect(() => {
+    if (saved.key !== key) setSaved({ key, done: readChecklist(key, items.length) });
+  }, [items.length, key, saved.key]);
+
+  useEffect(() => {
+    if (saved.key !== key) return;
+    try { localStorage.setItem(key, JSON.stringify(saved.done)); } catch { /* checklist still works for this visit */ }
+  }, [key, saved]);
+
+  const toggle = (index: number, checked: boolean) => {
+    setSaved((current) => {
+      const next = current.key === key ? [...current.done] : readChecklist(key, items.length);
+      next[index] = checked;
+      return { key, done: next };
+    });
+  };
+
+  return (
+    <div className="readiness-plan">
+      <div className="readiness-head">
+        <div>
+          <strong>{tt.t('safety.planProgress', { done: count, total: items.length })}</strong>
+          <span>{complete ? tt.t('safety.planComplete') : tt.t('safety.planPrompt')}</span>
+        </div>
+        {count > 0 && <button className="text-btn" onClick={() => setSaved({ key, done: items.map(() => false) })}>{tt.t('safety.planReset')}</button>}
+      </div>
+      <div className="readiness-track" role="progressbar" aria-label={tt.t('safety.planLabel')} aria-valuemin={0} aria-valuemax={items.length} aria-valuenow={count}>
+        <span style={{ width: `${items.length ? (count / items.length) * 100 : 0}%` }} />
+      </div>
+      <ul className="todo">
+        {items.map((item, i) => (
+          <li key={`${mode}-${i}`}>
+            <label className={done[i] ? 'is-done' : ''}>
+              <input type="checkbox" checked={done[i] ?? false} onChange={(event) => toggle(i, event.currentTarget.checked)} />
+              <span>{item}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <p className="footnote">{tt.t('safety.planSaved')}</p>
+    </div>
+  );
+}
 
 /** Fire safety: what is happening now, when this country burns, what the weather was in bad months, what to do. */
 export function Safety({ data, regionId }: { data: Dataset; regionId: string }) {
@@ -76,6 +140,16 @@ export function Safety({ data, regionId }: { data: Dataset; regionId: string }) 
         </div>
       )}
 
+      <div className="safety-part">
+        <h4>{tt.t('safety.doTitle')}</h4>
+        <p className="block-lead">{tt.t(hotNow ? 'safety.doWhyNow' : wait === 0 ? 'safety.doWhySeason' : 'safety.doWhyCalm')}</p>
+        <ReadinessChecklist regionId={regionId} mode={alert ? 'active' : 'prepare'} items={tt.tv<string[]>(alert ? 'safety.doAlert' : 'safety.doCalm')} />
+        {emergency && <p className="safety-call">{tt.t('safety.emergencyLabel')} <b className="mono">{emergency}</b></p>}
+        <p className="footnote">
+          {tt.t('safety.guideNote')} <a href={tt.t('safety.guideUrl')} target="_blank" rel="noreferrer">{tt.t('safety.guideSource')}</a>
+        </p>
+      </div>
+
       {drivers && (
         <div className="safety-part">
           <h4>{tt.t('safety.driversTitle')}</h4>
@@ -88,18 +162,6 @@ export function Safety({ data, regionId }: { data: Dataset; regionId: string }) 
           <p className="footnote">{tt.t('safety.driversNote')}</p>
         </div>
       )}
-
-      <div className="safety-part">
-        <h4>{tt.t('safety.doTitle')}</h4>
-        <p className="block-lead">{tt.t(hotNow ? 'safety.doWhyNow' : wait === 0 ? 'safety.doWhySeason' : 'safety.doWhyCalm')}</p>
-        <ol className="todo">
-          {tt.tv<string[]>(alert ? 'safety.doAlert' : 'safety.doCalm').map((s, i) => <li key={i}>{s}</li>)}
-        </ol>
-        {emergency && <p className="safety-call">{tt.t('safety.emergencyLabel')} <b className="mono">{emergency}</b></p>}
-        <p className="footnote">
-          {tt.t('safety.guideNote')} <a href={tt.t('safety.guideUrl')} target="_blank" rel="noreferrer">{tt.t('safety.guideSource')}</a>
-        </p>
-      </div>
     </section>
   );
 }

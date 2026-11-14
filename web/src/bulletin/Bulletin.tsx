@@ -11,6 +11,8 @@ import { SeasonChart } from './SeasonChart';
 import { HistoryBars } from './HistoryBars';
 import { Conditions } from './Conditions';
 import { Safety } from './Safety';
+import { verdictText } from '../lib/sentence';
+import type { Verdict as VerdictData } from '../lib/stats';
 
 function toCsv(data: Dataset, regionId: string, sensor: string, year: number, month: number | null) {
   const rows = (data.bySeries.get(`${regionId}|${sensor}`) ?? []).filter((r) => r.year === year && (month === null || r.month === month));
@@ -20,19 +22,38 @@ function toCsv(data: Dataset, regionId: string, sensor: string, year: number, mo
   return [head, ...body].join('\n');
 }
 
-function Actions({ data, regionId }: { data: Dataset; regionId: string }) {
+function Actions({ data, regionId, verdict }: { data: Dataset; regionId: string; verdict: VerdictData | null }) {
   const tt = useT();
   const sensor = useSensor(data);
   const { year, month } = useApp();
-  const [copied, setCopied] = useState(false);
+  const [shareState, setShareState] = useState<'idle' | 'copied' | 'shared'>('idle');
   const share = async () => {
-    try { await navigator.clipboard.writeText(location.href); }
+    const region = data.regionById.get(regionId);
+    const sentence = verdict ? verdictText(tt, verdict, year, month) : null;
+    const lines = [
+      `NIRAN · ${regionName(region)} · ${tt.period(year, month)} · ${sensor}`,
+      verdict && sentence ? `${tt.t(`level.${verdict.level}`)} — ${sentence.main}${sentence.rank ? ` ${sentence.rank}` : ''}` : '',
+      tt.t('footer.briefLimit'),
+      `${tt.t('footer.source', { sensor })}${data.meta.data_until ? ` · ${tt.t('footer.until', { date: tt.date(data.meta.data_until) })}` : ''}`,
+    ].filter(Boolean).join('\n');
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `NIRAN · ${regionName(region)}`, text: lines, url: location.href });
+        setShareState('shared');
+        window.setTimeout(() => setShareState('idle'), 2400);
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+      }
+    }
+    const copy = `${lines}\n${location.href}`;
+    try { await navigator.clipboard.writeText(copy); }
     catch {
-      const ta = Object.assign(document.createElement('textarea'), { value: location.href });
+      const ta = Object.assign(document.createElement('textarea'), { value: copy });
       document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove();
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setShareState('copied');
+    window.setTimeout(() => setShareState('idle'), 2400);
   };
   const download = () => {
     const blob = new Blob([toCsv(data, regionId, sensor, year, month)], { type: 'text/csv;charset=utf-8' });
@@ -46,7 +67,7 @@ function Actions({ data, regionId }: { data: Dataset; regionId: string }) {
       <div className="actions">
         <button className="text-btn" onClick={share}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
-          <span role="status">{copied ? tt.t('footer.copied') : tt.t('footer.share')}</span>
+          <span role="status">{tt.t(shareState === 'copied' ? 'footer.copied' : shareState === 'shared' ? 'footer.shared' : 'footer.share')}</span>
         </button>
         <button className="text-btn" onClick={download}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
@@ -134,7 +155,7 @@ export function Bulletin({ data }: { data: Dataset }) {
       ) : (
         <section className="block"><p>{tt.t('bulletin.noData')}</p></section>
       )}
-      <Actions data={data} regionId={region.region_id} />
+      <Actions data={data} regionId={region.region_id} verdict={verdict} />
     </article>
   );
 }
