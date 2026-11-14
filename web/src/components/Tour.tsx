@@ -2,7 +2,7 @@
  * Guided tour: a 1-minute walk through NIRAN for first-time visitors (and hackathon judges).
  * Each step sets the app state (page, country, month), waits for its target to render,
  * then spotlights it with a short card. Copy lives in en.json → tour.steps (same order as STEPS).
- * Start: header "Tour" button, the overview hero button, the first-visit offer, or ?tour=1 in the URL.
+ * Start: the homepage or header Tour button, the first-visit offer, or ?tour=1 in the URL.
  */
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { create } from 'zustand';
@@ -16,18 +16,17 @@ interface StepCfg { target: string; state?: Patch }
 const DEMO: Patch = { regionId: 'AUS', year: 2023, month: 12 };
 const STEPS: StepCfg[] = [
   { target: '[data-tour="hero"]', state: { page: 'home', ...DEMO } },
-  { target: '[data-tour="kpis"]', state: { page: 'home', ...DEMO } },
   { target: '[data-tour="countries"]', state: { page: 'home', ...DEMO } },
   { target: '[data-tour="verdict"]', state: { page: 'app', ...DEMO } },
   { target: '[data-tour="history"]', state: { page: 'app', ...DEMO } },
-  { target: '[data-tour="safety"] .safety-part', state: { page: 'app', ...DEMO } },
+  { target: '[data-tour="safety"] > summary', state: { page: 'app', ...DEMO } },
   { target: '[data-tour="replay"]', state: { page: 'app', ...DEMO } },
   { target: '[data-tour="sensor"]', state: { page: 'app', ...DEMO } },
   { target: '[data-tour="compare"] > :first-child', state: { page: 'compare', regionId: 'AUS', year: 2022, yearB: 2023 } },
-  { target: '[data-tour="method"] .table-wrap', state: { page: 'method' } },
+  { target: '[data-tour="method"] > summary', state: { page: 'method' } },
 ];
 
-const SEEN = 'niran.tour.seen';
+const SEEN = 'niran.tour.seen.v2';
 const markSeen = () => { try { localStorage.setItem(SEEN, '1'); } catch { /* storage blocked: offer again next time */ } };
 const wasSeen = () => { try { return localStorage.getItem(SEEN) === '1'; } catch { return false; } };
 
@@ -58,20 +57,52 @@ function place(r: DOMRect | null, w: number, h: number): CSSProperties {
 export function Tour() {
   const tt = useT();
   const step = useTour((s) => s.step);
+  const page = useApp((s) => s.page);
   const texts = tt.tv<{ title: string; body: string }[]>('tour.steps');
   const [found, setFound] = useState<{ rect: DOMRect | null; step: number } | null>(null);
   const [offer, setOffer] = useState(false);
   const [size, setSize] = useState({ w: 360, h: 220 });
   const card = useRef<HTMLDivElement>(null);
+  const offerRef = useRef<HTMLElement>(null);
+  const offerStartRef = useRef<HTMLButtonElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
-  // ?tour=1 starts it; a first visit gets a gentle offer instead
+  // ?tour=1 starts the tour for demo links; first-time visitors get a dismissible offer.
   useEffect(() => {
     if (new URLSearchParams(location.search).get('tour') === '1') { useTour.getState().start(); return; }
-    if (wasSeen()) return;
-    const t = setTimeout(() => setOffer(true), 1800);
-    return () => clearTimeout(t);
-  }, []);
+    if (page !== 'home' || wasSeen()) return;
+    const timer = window.setTimeout(() => setOffer(true), 800);
+    return () => clearTimeout(timer);
+  }, [page]);
   useEffect(() => { if (step !== null) setOffer(false); }, [step]);
+
+  useEffect(() => {
+    if (!offer) return;
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    offerStartRef.current?.focus({ preventScroll: true });
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        markSeen();
+        setOffer(false);
+        requestAnimationFrame(() => returnFocusRef.current?.focus({ preventScroll: true }));
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const buttons = offerRef.current?.querySelectorAll<HTMLButtonElement>('button:not([disabled])');
+      if (!buttons?.length) return;
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [offer]);
+
+  const dismissOffer = () => {
+    markSeen();
+    setOffer(false);
+    requestAnimationFrame(() => returnFocusRef.current?.focus({ preventScroll: true }));
+  };
 
   // Apply the step's state, then follow its target (globe and panels move and scroll). A timer, not
   // requestAnimationFrame, so the tour still advances when the tab is in the background.
@@ -129,14 +160,17 @@ export function Tour() {
   if (step === null) {
     if (!offer) return null;
     return (
-      <aside className="tour-offer" role="dialog" aria-labelledby="tour-offer-title">
+      <>
+      <div className="tour-offer-backdrop" aria-hidden="true" />
+      <aside ref={offerRef} className="tour-offer" role="dialog" aria-modal="true" aria-labelledby="tour-offer-title" aria-describedby="tour-offer-body">
         <p className="tour-offer-title" id="tour-offer-title">{tt.t('tour.offerTitle')}</p>
-        <p>{tt.t('tour.offerBody')}</p>
+        <p id="tour-offer-body">{tt.t('tour.offerBody')}</p>
         <div className="tour-actions">
-          <button className="btn btn-primary" onClick={() => useTour.getState().start()}>{tt.t('tour.offerStart')}</button>
-          <button className="tour-link" onClick={() => { markSeen(); setOffer(false); }}>{tt.t('tour.offerLater')}</button>
+          <button ref={offerStartRef} className="btn btn-primary" onClick={() => useTour.getState().start()}>{tt.t('tour.offerStart')}</button>
+          <button className="tour-link" onClick={dismissOffer}>{tt.t('tour.offerLater')}</button>
         </div>
       </aside>
+      </>
     );
   }
 

@@ -197,47 +197,55 @@ export function Compare({ data }: { data: Dataset }) {
             </ComposedChart>
           </ResponsiveContainer>
         </div>
-        <div className="table-wrap">
-          <table className="data">
-            <thead>
-              <tr>
-                <th scope="col">{tt.t('compare.colMonth')}</th>
-                <th scope="col" className="num">{a}</th>
-                <th scope="col">{tt.t('home.colLevel')}</th>
-                <th scope="col" className="num">{b}</th>
-                <th scope="col">{tt.t('home.colLevel')}</th>
-                <th scope="col" className="num">{tt.t('compare.colChange')}</th>
-                <th scope="col" className="num">{tt.t('home.colUsual')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {monthly.map((m, i) => {
-                const ma = A.months[i], mb = B.months[i];
-                return (
-                  <tr key={m.month}>
-                    <th scope="row">{tt.monthName(m.month)}</th>
-                    <td className="num">{ma ? tt.num(ma.n) : '—'}</td>
-                    <td>{ma && <LevelBadge level={ma.level} size="sm" />}</td>
-                    <td className="num">{mb ? tt.num(mb.n) : '—'}</td>
-                    <td>{mb && <LevelBadge level={mb.level} size="sm" />}</td>
-                    <td className={`num strong ${ma && mb ? tone(mb.n - ma.n) : ''}`}>{ma && mb ? (ma.n > 0 ? pctChange(ma.n, mb.n) : signed(mb.n - ma.n)) : '—'}</td>
-                    <td className="num muted">{m.usual !== null ? tt.num(m.usual) : '—'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <details className="cmp-detail">
+          <summary>{tt.t('compare.monthTable')}</summary>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">{tt.t('compare.colMonth')}</th>
+                  <th scope="col" className="num">{a}</th>
+                  <th scope="col">{tt.t('home.colLevel')}</th>
+                  <th scope="col" className="num">{b}</th>
+                  <th scope="col">{tt.t('home.colLevel')}</th>
+                  <th scope="col" className="num">{tt.t('compare.colChange')}</th>
+                  <th scope="col" className="num">{tt.t('home.colUsual')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthly.map((m, i) => {
+                  const ma = A.months[i], mb = B.months[i];
+                  return (
+                    <tr key={m.month}>
+                      <th scope="row">{tt.monthName(m.month)}</th>
+                      <td className="num">{ma ? tt.num(ma.n) : '—'}</td>
+                      <td>{ma && <LevelBadge level={ma.level} size="sm" />}</td>
+                      <td className="num">{mb ? tt.num(mb.n) : '—'}</td>
+                      <td>{mb && <LevelBadge level={mb.level} size="sm" />}</td>
+                      <td className={`num strong ${ma && mb ? tone(mb.n - ma.n) : ''}`}>{ma && mb ? (ma.n > 0 ? pctChange(ma.n, mb.n) : signed(mb.n - ma.n)) : '—'}</td>
+                      <td className="num muted">{m.usual !== null ? tt.num(m.usual) : '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </details>
         <p className="kpi-note">{tt.t('compare.usualNote')}</p>
       </section>
 
       {cleaning && (
-        <section className="cmp-clean">
-          <header className="sec-head"><h2>{tt.t('compare.cleaning')}</h2><span className="mono">{cleaning.file}</span></header>
-          <CleaningTable steps={cleaning.steps} className="data" />
-          <p className="kpi-note">{tt.t('compare.cleaningNote')}</p>
-          <button className="btn" onClick={() => set({ page: 'method' })}>{tt.t('home.ctaMethod')}</button>
-        </section>
+        <details className="cmp-clean cmp-detail">
+          <summary>
+            <span role="heading" aria-level={2}>{tt.t('compare.cleaning')}</span>
+            <span className="mono">{cleaning.file}</span>
+          </summary>
+          <div className="cmp-clean-content">
+            <CleaningTable steps={cleaning.steps} className="data" />
+            <p className="kpi-note">{tt.t('compare.cleaningNote')}</p>
+            <button className="btn" onClick={() => set({ page: 'method' })}>{tt.t('home.ctaMethod')}</button>
+          </div>
+        </details>
       )}
     </main>
   );

@@ -5,55 +5,15 @@ import { regionName, useSensor, type Dataset } from '../lib/data';
 import { availableYears, computeVerdict, yearSeries } from '../lib/stats';
 import { LEVEL_STYLE } from '../levels';
 import { LevelIcon } from '../components/Level';
+import { PeriodPicker } from './PeriodPicker';
 import { Verdict } from './Verdict';
 import { SeasonChart } from './SeasonChart';
 import { HistoryBars } from './HistoryBars';
 import { Conditions } from './Conditions';
 import { Safety } from './Safety';
 
-const Chevron = ({ right }: { right: boolean }) => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d={right ? 'm9 6 6 6-6 6' : 'm15 6-6 6 6 6'} />
-  </svg>
-);
-
-export function PeriodPicker({ years }: { years: number[] }) {
-  const tt = useT();
-  const { year, month, set } = useApp();
-  const minY = years[0], maxY = years[years.length - 1];
-  const step = (d: number) => {
-    if (month === null) { set({ year: Math.min(maxY, Math.max(minY, year + d)) }); return; }
-    let m = month + d, y = year;
-    if (m < 1) { m = 12; y--; }
-    if (m > 12) { m = 1; y++; }
-    if (y < minY || y > maxY) return;
-    set({ year: y, month: m });
-  };
-  const atStart = year === minY && (month === null || month === 1);
-  const atEnd = year === maxY && (month === null || month === 12);
-  return (
-    <div className="period">
-      <button className="step" onClick={() => step(-1)} disabled={atStart} aria-label={tt.t('bulletin.prev')}><Chevron right={false} /></button>
-      <label className="period-field">
-        <span className="sr-only">{tt.t('bulletin.month')}</span>
-        <select value={month ?? 'all'} onChange={(e) => set({ month: e.target.value === 'all' ? null : Number(e.target.value) })}>
-          <option value="all">{tt.t('bulletin.allYear')}</option>
-          {Array.from({ length: 12 }, (_, i) => <option key={i} value={i + 1}>{tt.monthName(i + 1)}</option>)}
-        </select>
-      </label>
-      <label className="period-field">
-        <span className="sr-only">{tt.t('bulletin.year')}</span>
-        <select value={year} onChange={(e) => set({ year: Number(e.target.value) })}>
-          {years.map((y) => <option key={y} value={y}>{y}</option>)}
-        </select>
-      </label>
-      <button className="step" onClick={() => step(1)} disabled={atEnd} aria-label={tt.t('bulletin.next')}><Chevron right /></button>
-    </div>
-  );
-}
-
-function toCsv(data: Dataset, regionId: string) {
-  const rows = (data.meta.sensors ?? ['MODIS']).flatMap((s) => data.bySeries.get(`${regionId}|${s}`) ?? []);
+function toCsv(data: Dataset, regionId: string, sensor: string, year: number, month: number | null) {
+  const rows = (data.bySeries.get(`${regionId}|${sensor}`) ?? []).filter((r) => r.year === year && (month === null || r.month === month));
   const name = regionName(data.regionById.get(regionId)).replace(/"/g, '""');
   const head = 'region_id,region_name,sensor,year,month,detections,usual_median,p10,p90,level';
   const body = rows.map((r) => `${r.region_id},"${name}",${r.sensor},${r.year},${r.month},${r.n},${r.median},${r.p10},${r.p90},${r.level}`);
@@ -63,6 +23,7 @@ function toCsv(data: Dataset, regionId: string) {
 function Actions({ data, regionId }: { data: Dataset; regionId: string }) {
   const tt = useT();
   const sensor = useSensor(data);
+  const { year, month } = useApp();
   const [copied, setCopied] = useState(false);
   const share = async () => {
     try { await navigator.clipboard.writeText(location.href); }
@@ -74,8 +35,9 @@ function Actions({ data, regionId }: { data: Dataset; regionId: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
   const download = () => {
-    const blob = new Blob([toCsv(data, regionId)], { type: 'text/csv;charset=utf-8' });
-    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `niran_${regionId}_MODIS.csv` });
+    const blob = new Blob([toCsv(data, regionId, sensor, year, month)], { type: 'text/csv;charset=utf-8' });
+    const period = month === null ? 'all-months' : String(month).padStart(2, '0');
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `niran_${regionId}_${sensor}_${year}-${period}.csv` });
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
@@ -135,6 +97,7 @@ function Overview({ data, years }: { data: Dataset; years: number[] }) {
 
 export function Bulletin({ data }: { data: Dataset }) {
   const tt = useT();
+  const [safetyOpen, setSafetyOpen] = useState(false);
   const { regionId, year, month } = useApp();
   const sensor = useSensor(data);
   const region = regionId ? data.regionById.get(regionId) : undefined;
@@ -157,7 +120,13 @@ export function Bulletin({ data }: { data: Dataset }) {
       {verdict ? (
         <>
           <Verdict v={verdict} year={year} month={month} />
-          <Safety data={data} regionId={region.region_id} />
+          <details className="bulletin-details" data-tour="safety" onToggle={(event) => setSafetyOpen(event.currentTarget.open)}>
+            <summary>
+              <span>{tt.t('safety.disclosureTitle')}</span>
+              <span className="block-src mono">{tt.t('safety.disclosureHint')}</span>
+            </summary>
+            {safetyOpen && <Safety data={data} regionId={region.region_id} />}
+          </details>
           <SeasonChart cum={data.cumulative[sensor]?.[region.region_id]} year={year} month={month} level={verdict.level} />
           <HistoryBars series={series} year={year} month={month} median={verdict.median} />
           <Conditions ctx={ctx} month={month} />

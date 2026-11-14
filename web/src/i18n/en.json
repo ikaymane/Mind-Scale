@@ -143,12 +143,8 @@
         "body": "NIRAN answers one question for Morocco, Australia and Brazil: is this month's fire activity normal? It compares NASA satellite fire detections with the same month in other years. This tour takes about a minute."
       },
       {
-        "title": "The month at a glance",
-        "body": "Four numbers sum up the chosen month: total fire detections, how far that is from usual, how many countries are above their usual range, and the biggest outlier."
-      },
-      {
         "title": "One line per country",
-        "body": "Each country gets a level from Low to Extreme. The 12 small squares are the 12 months of the year, coloured by level. Click any row to open that country's bulletin."
+        "body": "Each country gets a level from Low to Extreme. The 12 small squares show that year's months. Click a country to open its bulletin."
       },
       {
         "title": "The bulletin",
@@ -176,7 +172,7 @@
       },
       {
         "title": "Every number is traceable",
-        "body": "The Method page lists the NASA sources, every cleaning step with the rows it removed, and what the data cannot tell you. That's the tour: explore freely, or replay it from Tour at the top."
+        "body": "Open the Method sections to see the NASA sources, cleaning steps and limits behind the numbers. You can replay this tour from the header."
       }
     ]
   },
@@ -188,7 +184,7 @@
   "footer": {
     "share": "Copy link",
     "copied": "Link copied",
-    "csv": "Download CSV",
+    "csv": "Download this view (CSV)",
     "source": "NASA FIRMS ({sensor})",
     "until": "data to {date}"
   },
@@ -240,11 +236,10 @@
     "kicker": "NASA Space Apps · Make wildfire data easier to use",
     "title": "Is this fire season normal?",
     "lead": "NIRAN compares each month's satellite fire detections with the same month in other years, then says it in one sentence.",
-    "cta": "Open the globe",
+    "cta": "Explore the map",
+    "moreLive": "Explore live fires and recent activity",
     "pickPeriod": "Pick a month",
-    "step1": "1 · The month you picked",
-    "step2": "2 · Right now",
-    "step3": "3 · On record",
+    "step1": "Country overview",
     "monthTitle": "How {period} compares with other years",
     "ccLine": "{n} detections · usual {usual}",
     "ccOpen": "Open bulletin",
@@ -276,7 +271,7 @@
     "kpiTop": "Furthest from usual",
     "kpiLive": "Open wildfires now",
     "kpiLiveSub": "NASA EONET · worldwide",
-    "usualNote": "Usual level: median of the same period in the other years ({first}–{last}), summed across countries.",
+    "usualNote": "Usual = the median for the same period in other years ({first}–{last}).",
     "countries": "Countries",
     "records": "Most unusual months",
     "colCountry": "Country",
@@ -394,6 +389,8 @@
   },
   "safety": {
     "title": "Fire safety",
+    "disclosureTitle": "Live activity and safety",
+    "disclosureHint": "Current detections · fire season · guidance",
     "source": "LANCE live · FIRMS archive",
     "nowTitle": "Right now · last 7 days",
     "nowNote": "Live NASA satellite feed. It does not change with the month selected above.",
@@ -483,6 +480,7 @@
     "season": "Season build-up",
     "seasonAxis": "Cumulative fire detections through {a} and {b}",
     "months": "Month by month",
+    "monthTable": "Show monthly counts and alert levels",
     "monthsAxis": "Fire detections per month in {a} and {b}",
     "usualNote": "Usual = median of the same month in the other years of the record, as computed for the first year shown.",
     "cleaning": "From raw file to these figures",

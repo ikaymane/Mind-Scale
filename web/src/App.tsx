@@ -1,13 +1,14 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { useT } from './i18n';
 import { useApp } from './store';
 import { useDataset } from './lib/data';
 import { Header } from './components/Header';
 import { Tour } from './components/Tour';
-import { AppView } from './pages/AppView';
 import { Home } from './pages/Home';
-import { Compare } from './pages/Compare';
-import { Method } from './pages/Method';
+
+const AppView = lazy(() => import('./pages/AppView').then((m) => ({ default: m.AppView })));
+const Compare = lazy(() => import('./pages/Compare').then((m) => ({ default: m.Compare })));
+const Method = lazy(() => import('./pages/Method').then((m) => ({ default: m.Method })));
 
 export function App() {
   const tt = useT();
@@ -31,7 +32,9 @@ export function App() {
       {state.status === 'loading' && <div className="state" role="status"><span className="spinner" aria-hidden="true" />{tt.t('common.loading')}</div>}
       {state.status === 'error' && <div className="state state-error" role="alert">{tt.t('common.error')}</div>}
       {state.status === 'ready' && (
-        page === 'home' ? <Home data={state.data} /> : page === 'method' ? <Method data={state.data} /> : page === 'compare' ? <Compare data={state.data} /> : <AppView data={state.data} />
+        <Suspense fallback={<div className="state" role="status"><span className="spinner" aria-hidden="true" />{tt.t('common.loading')}</div>}>
+          {page === 'home' ? <Home data={state.data} /> : page === 'method' ? <Method data={state.data} /> : page === 'compare' ? <Compare data={state.data} /> : <AppView data={state.data} />}
+        </Suspense>
       )}
       {state.status === 'ready' && <Tour />}
     </div>

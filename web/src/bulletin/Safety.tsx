@@ -24,7 +24,7 @@ export function Safety({ data, regionId }: { data: Dataset; regionId: string }) 
   const max = season ? Math.max(...season.share) : 0;
 
   return (
-    <section className="block safety" data-tour="safety">
+    <section className="block safety">
       <header className="block-head">
         <h3>{tt.t('safety.title')}</h3>
         <span className="block-src mono">{tt.t('safety.source')}</span>
