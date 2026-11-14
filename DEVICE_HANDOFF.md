@@ -2,7 +2,26 @@
 
 This guide opens the current Binôme B website work on another computer. The project is a static React + Vite site; the website data files are already committed, so rebuilding the Python data pipeline is not required to run it.
 
-## Open this branch on a new computer
+## Transfer status
+
+The finished changes are committed on `feature/mouadhamdouchi`. GitHub denied a push to `ikaymane/Mind-Scale` because the current account does not have write access, so this branch is not on the remote yet. For an immediate transfer, copy the `Mind-Scale-feature.bundle` file created alongside the project folder together with this guide. If the repository owner grants write access, push the branch from the current computer with `git push -u origin feature/mouadhamdouchi`, then use the GitHub clone steps below.
+
+## Open from the Git bundle
+
+After copying `Mind-Scale-feature.bundle` to the new computer, replace the example path below with where you saved it:
+
+```powershell
+git clone "C:\path\to\Mind-Scale-feature.bundle" Mind-Scale
+cd Mind-Scale
+git switch feature/mouadhamdouchi
+cd web
+npm ci
+npm run dev
+```
+
+Open the local URL printed by Vite, usually `http://localhost:5173`.
+
+## Open from GitHub after the branch is pushed
 
 You need Git, Node.js with npm, and access to the repository.
 
