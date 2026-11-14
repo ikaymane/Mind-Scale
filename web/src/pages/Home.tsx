@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../i18n';
 import { useApp } from '../store';
 import { regionName, useSensor, type Dataset } from '../lib/data';
@@ -31,6 +31,37 @@ function summary(tt: T, rows: { name: string; level: Level }[]): string {
   return `${parts.join('; ')}.`;
 }
 
+function DeferredGlobe({ data, onOpen }: { data: Dataset; onOpen: (regionId: string) => void }) {
+  const tt = useT();
+  const host = useRef<HTMLDivElement>(null);
+  const [nearViewport, setNearViewport] = useState(false);
+
+  useEffect(() => {
+    const node = host.current;
+    if (!node) return;
+    if (!('IntersectionObserver' in window)) {
+      setNearViewport(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting) {
+        setNearViewport(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: '700px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div className="dash-globe" ref={host}>
+      {nearViewport
+        ? <Globe data={data} mode="home" onPick={onOpen} />
+        : <div className="globe-deferred" role="status"><span className="spinner" aria-hidden="true" />{tt.t('home.liveMapLoading')}</div>}
+    </div>
+  );
+}
+
 function LiveActivity({ data, onOpen }: { data: Dataset; onOpen: (regionId: string) => void }) {
   const tt = useT();
   const now = useNow(data);
@@ -40,9 +71,7 @@ function LiveActivity({ data, onOpen }: { data: Dataset; onOpen: (regionId: stri
 
   return (
     <section className="ov-split" aria-label={tt.t('globe.label')}>
-      <div className="dash-globe">
-        <Globe data={data} mode="home" onPick={onOpen} />
-      </div>
+      <DeferredGlobe data={data} onOpen={onOpen} />
       <div className="ov-live" data-tour="live">
         <header className="ov-head">
           <h2>{tt.t('home.liveTitle')}</h2>
@@ -77,7 +106,6 @@ function LiveActivity({ data, onOpen }: { data: Dataset; onOpen: (regionId: stri
 export function Home({ data }: { data: Dataset }) {
   const tt = useT();
   const { year, month, set } = useApp();
-  const [liveOpen, setLiveOpen] = useState(false);
   const SENSOR = useSensor(data);
   const years = useMemo(() => availableYears(data, SENSOR), [data, SENSOR]);
   const period = tt.period(year, month);
@@ -153,10 +181,12 @@ export function Home({ data }: { data: Dataset }) {
         {first && <p className="home-note">{tt.t('home.usualNote', { first, last })} <button className="text-btn" onClick={() => set({ page: 'method' })}>{tt.t('home.ctaMethod')}</button></p>}
       </section>
 
-      <details className="home-more" onToggle={(event) => setLiveOpen(event.currentTarget.open)}>
-        <summary>{tt.t('home.moreLive')}</summary>
-        {liveOpen && <LiveActivity data={data} onOpen={(id) => open(id)} />}
-      </details>
+      <section className="home-more home-live-open" aria-labelledby="home-live-heading">
+        <header className="home-live-heading">
+          <h2 id="home-live-heading">{tt.t('home.moreLive')}</h2>
+        </header>
+        <LiveActivity data={data} onOpen={(id) => open(id)} />
+      </section>
 
       <footer className="page-footer">
         <p>{tt.t('footer.source', { sensor: SENSOR })}{data.meta.data_until && <> · {tt.t('footer.until', { date: tt.date(data.meta.data_until) })}</>} · {tt.t('home.archive', { n: tt.num(archive), first, last })}</p>

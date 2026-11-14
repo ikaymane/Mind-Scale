@@ -44,7 +44,13 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 function place(r: DOMRect | null, w: number, h: number): CSSProperties {
   const vw = innerWidth, vh = innerHeight;
   if (!r) return { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' };
-  if (vw < 640) return r.top + r.height / 2 > vh / 2 ? { left: EDGE, right: EDGE, top: EDGE + 56 } : { left: EDGE, right: EDGE, bottom: EDGE };
+  if (vw < 860) {
+    const headerBottom = document.querySelector<HTMLElement>('.header')?.getBoundingClientRect().bottom ?? 0;
+    const top = Math.min(Math.max(EDGE + 12, headerBottom + 12), vh - h - EDGE);
+    return r.top + r.height / 2 > vh / 2
+      ? { left: EDGE, right: EDGE, top }
+      : { left: EDGE, right: EDGE, bottom: EDGE };
+  }
   const left = clamp(r.left, EDGE, vw - w - EDGE);
   if (r.bottom + PAD + GAP + h < vh - EDGE) return { left, top: r.bottom + PAD + GAP };
   if (r.top - PAD - GAP - h > EDGE) return { left, top: r.top - PAD - GAP - h };
@@ -110,6 +116,8 @@ export function Tour() {
   useEffect(() => {
     if (step === null) { setFound(null); return; }
     const cfg = STEPS[step];
+    // Put the card on screen immediately; it will glide to the first target when it mounts.
+    setFound((current) => current ?? { rect: null, step });
     if (cfg.state) useApp.getState().set(cfg.state);
     const t0 = performance.now();
     let timer = 0, last = '', scrolled = 0;
@@ -117,7 +125,8 @@ export function Tour() {
       const el = document.querySelector<HTMLElement>(cfg.target);
       const r = el?.getBoundingClientRect();
       if (el && r && r.width > 0 && r.height > 0) {
-        const off = r.bottom < 60 || r.top > innerHeight - 40;
+        const headerBottom = document.querySelector<HTMLElement>('.header')?.getBoundingClientRect().bottom ?? 0;
+        const off = r.bottom < headerBottom + 12 || r.top > innerHeight - 40;
         if (!scrolled) {
           scrolled = performance.now();
           const smooth = !document.hidden && !matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -138,7 +147,9 @@ export function Tour() {
     return () => clearTimeout(timer);
   }, [step]);
 
-  const shown = step !== null && found?.step === step;
+  // Keep the dialog visible while the next page/target is entering view. The spotlight then
+  // glides to the new target instead of briefly leaving an empty dim overlay.
+  const shown = step !== null && found !== null;
   useLayoutEffect(() => {
     if (!shown || !card.current) return;
     const { offsetWidth: w, offsetHeight: h } = card.current;

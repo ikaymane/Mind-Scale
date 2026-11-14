@@ -67,6 +67,7 @@
   "bulletin": {
     "title": "Fire bulletin",
     "overview": "All countries",
+    "changeCountry": "Change country",
     "year": "Year",
     "month": "Month",
     "allYear": "Whole year",
@@ -148,7 +149,7 @@
       },
       {
         "title": "The bulletin",
-        "body": "This is Australia in December 2023. The word, the colour and the percentage give the verdict at a glance, and one plain sentence explains it."
+        "body": "This is Australia in December 2023. The word, the colour and the percentage give the verdict at a glance, and one plain sentence explains it. Use Change country beside the name to switch regions without leaving the bulletin."
       },
       {
         "title": "Against the other years",
@@ -240,6 +241,7 @@
     "lead": "NIRAN compares each month's satellite fire detections with the same month in other years. Open a region for recent activity, a shareable briefing and a practical readiness plan.",
     "cta": "Explore the map",
     "moreLive": "Explore live fires and recent activity",
+    "liveMapLoading": "Loading the fire map…",
     "pickPeriod": "Pick a month",
     "step1": "Country overview",
     "monthTitle": "How {period} compares with other years",

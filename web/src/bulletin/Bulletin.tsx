@@ -119,7 +119,7 @@ function Overview({ data, years }: { data: Dataset; years: number[] }) {
 export function Bulletin({ data }: { data: Dataset }) {
   const tt = useT();
   const [safetyOpen, setSafetyOpen] = useState(false);
-  const { regionId, year, month } = useApp();
+  const { regionId, year, month, set } = useApp();
   const sensor = useSensor(data);
   const region = regionId ? data.regionById.get(regionId) : undefined;
   const years = useMemo(() => availableYears(data, sensor), [data, sensor]);
@@ -134,7 +134,16 @@ export function Bulletin({ data }: { data: Dataset }) {
       <header className="panel-head">
         <div>
           <p className="eyebrow">{tt.t('bulletin.title')}</p>
-          <h2 className="panel-title" id="panel-title">{regionName(region)}</h2>
+          <div className="panel-title-row">
+            <h2 className="panel-title" id="panel-title">{regionName(region)}</h2>
+            <label className="panel-country-change">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+              <span>{tt.t('bulletin.changeCountry')}</span>
+              <select aria-label={tt.t('bulletin.changeCountry')} value={region.region_id} onChange={(e) => set({ regionId: e.target.value })}>
+                {data.regions.map((r) => <option key={r.region_id} value={r.region_id}>{regionName(r)}</option>)}
+              </select>
+            </label>
+          </div>
         </div>
         <PeriodPicker years={years} />
       </header>
