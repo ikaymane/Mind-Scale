@@ -1,0 +1,16 @@
+# Raw / cleaned NASA FIRMS archives: too big for GitHub (>100 MB). Keep them outside the repo or in data/.
+/data/
+*.csv
+*.parquet
+*.npy
+
+# Build + deps
+node_modules/
+dist/
+*.tsbuildinfo
+__pycache__/
+pipeline/cache/
+
+# Secrets
+.env
+.env.*
