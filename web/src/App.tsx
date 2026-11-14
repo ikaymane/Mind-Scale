@@ -3,8 +3,10 @@ import { useT } from './i18n';
 import { useApp } from './store';
 import { useDataset } from './lib/data';
 import { Header } from './components/Header';
+import { Tour } from './components/Tour';
 import { AppView } from './pages/AppView';
 import { Home } from './pages/Home';
+import { Compare } from './pages/Compare';
 import { Method } from './pages/Method';
 
 export function App() {
@@ -25,12 +27,13 @@ export function App() {
   return (
     <div className={`shell page-${page}`}>
       <a className="skip" href="#main">{tt.t('nav.skip')}</a>
-      <Header regions={state.status === 'ready' ? state.data.regions : []} until={state.status === 'ready' ? state.data.meta.data_until : undefined} />
+      <Header regions={state.status === 'ready' ? state.data.regions : []} until={state.status === 'ready' ? state.data.meta.data_until : undefined} sensors={state.status === 'ready' ? state.data.meta.sensors : undefined} />
       {state.status === 'loading' && <div className="state" role="status"><span className="spinner" aria-hidden="true" />{tt.t('common.loading')}</div>}
       {state.status === 'error' && <div className="state state-error" role="alert">{tt.t('common.error')}</div>}
       {state.status === 'ready' && (
-        page === 'home' ? <Home data={state.data} /> : page === 'method' ? <Method data={state.data} /> : <AppView data={state.data} />
+        page === 'home' ? <Home data={state.data} /> : page === 'method' ? <Method data={state.data} /> : page === 'compare' ? <Compare data={state.data} /> : <AppView data={state.data} />
       )}
+      {state.status === 'ready' && <Tour />}
     </div>
   );
 }

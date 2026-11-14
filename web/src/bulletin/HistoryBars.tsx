@@ -13,7 +13,7 @@ export function HistoryBars({ series, year, month, median }: { series: YearPoint
   const compact = new Intl.NumberFormat(tt.locale, { notation: 'compact', maximumFractionDigits: 1 });
 
   return (
-    <section className="block">
+    <section className="block" data-tour="history">
       <header className="block-head">
         <h3>{month === null ? tt.t('history.titleYear') : tt.t('history.title', { ofMonth: tt.ofMonth(month) })}</h3>
         <span className="block-src mono">{first}–{last}</span>
