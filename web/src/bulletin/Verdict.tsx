@@ -18,7 +18,7 @@ export function Verdict({ v, year, month }: { v: V; year: number; month: number 
   const text = verdictText(tt, v, year, month);
   const f = figure(tt, v);
   return (
-    <section className="verdict" style={{ ['--lv' as string]: s.fill }} aria-live="polite">
+    <section className="verdict" data-tour="verdict" style={{ ['--lv' as string]: s.fill }} aria-live="polite">
       <div className="verdict-row">
         <div>
           <p className="verdict-level">

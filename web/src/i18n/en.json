@@ -8,7 +8,8 @@
     "overview": "Overview",
     "bulletin": "Globe",
     "method": "Method",
-    "skip": "Skip to bulletin"
+    "skip": "Skip to bulletin",
+    "compare": "Compare"
   },
   "search": {
     "label": "Search a country",
@@ -123,11 +124,72 @@
     "unavailable": "No NASA POWER data for this period.",
     "yearNote": "Pick a month to see that month's weather."
   },
+  "tour": {
+    "header": "Tour",
+    "headerTitle": "Take the 1-minute guided tour",
+    "heroStart": "Take the 1-minute tour",
+    "offerTitle": "New here?",
+    "offerBody": "A 1-minute guided tour shows how to read NIRAN, step by step.",
+    "offerStart": "Start the tour",
+    "offerLater": "No thanks",
+    "count": "Step {i} of {n}",
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip tour",
+    "finish": "Finish",
+    "steps": [
+      {
+        "title": "Welcome to NIRAN",
+        "body": "NIRAN answers one question for Morocco, Australia and Brazil: is this month's fire activity normal? It compares NASA satellite fire detections with the same month in other years. This tour takes about a minute."
+      },
+      {
+        "title": "The month at a glance",
+        "body": "Four numbers sum up the chosen month: total fire detections, how far that is from usual, how many countries are above their usual range, and the biggest outlier."
+      },
+      {
+        "title": "One line per country",
+        "body": "Each country gets a level from Low to Extreme. The 12 small squares are the 12 months of the year, coloured by level. Click any row to open that country's bulletin."
+      },
+      {
+        "title": "The bulletin",
+        "body": "This is Australia in December 2023. The word, the colour and the percentage give the verdict at a glance, and one plain sentence explains it."
+      },
+      {
+        "title": "Against the other years",
+        "body": "Each bar is the same month in another year. The highlighted bar is the month you picked, so you can see straight away whether it stands out."
+      },
+      {
+        "title": "Fire safety, right now",
+        "body": "Live NASA detections from the last 7 days, when this country's fire season runs, and simple steps people can take to stay safe."
+      },
+      {
+        "title": "Watch the month burn",
+        "body": "Press Replay to play the month day by day on the globe. Each ring marks the first day a fire showed up in that area."
+      },
+      {
+        "title": "Two satellite sensors",
+        "body": "Switch between MODIS (1 km pixels, Terra and Aqua) and VIIRS (375 m pixels, Suomi NPP and NOAA-20). VIIRS sees smaller fires. Each sensor is only compared with itself."
+      },
+      {
+        "title": "Compare two years",
+        "body": "Pick a country and two years to see totals, timing, the busiest months and the weather side by side."
+      },
+      {
+        "title": "Every number is traceable",
+        "body": "The Method page lists the NASA sources, every cleaning step with the rows it removed, and what the data cannot tell you. That's the tour: explore freely, or replay it from Tour at the top."
+      }
+    ]
+  },
+  "sensor": {
+    "label": "Satellite sensor",
+    "MODIS": "MODIS on Terra and Aqua, 1 km pixels, since 2000",
+    "VIIRS": "VIIRS on Suomi NPP and NOAA-20 (J1), 375 m pixels: sees smaller fires"
+  },
   "footer": {
     "share": "Copy link",
     "copied": "Link copied",
     "csv": "Download CSV",
-    "source": "NASA FIRMS (MODIS)",
+    "source": "NASA FIRMS ({sensor})",
     "until": "data to {date}"
   },
   "map": {
@@ -138,7 +200,7 @@
     "label": "Interactive globe of fire detections",
     "reset": "Whole globe",
     "hint": "Drag to turn · click a country",
-    "note": "Orbits are illustrative. Fire dots are real MODIS detections for the chosen period.",
+    "note": "Orbits are illustrative (Terra and Aqua, the MODIS satellites). Fire dots are real detections from the sensor chosen at the top, for the chosen period.",
     "legendFire": "Fire detections (size = count)",
     "sat": "{name} · MODIS",
     "inSwath": {
@@ -146,6 +208,7 @@
       "other": "{n} detections under the sensor"
     },
     "imagery": "Imagery: NASA GIBS",
+    "orbits": "orbits illustrative",
     "replay": "Replay {period}",
     "pause": "Pause",
     "day": "Day {d}",
@@ -166,13 +229,33 @@
       "other": "{n} wildfires open now"
     },
     "liveSource": "NASA EONET",
-    "liveToggle": "Show open wildfires"
+    "liveToggle": "Show the latest detections",
+    "recent": {
+      "one": "{n} live detection, last 7 days · all countries",
+      "other": "{n} live detections, last 7 days · all countries"
+    },
+    "recentSource": "Live, last 7 days · NASA LANCE"
   },
   "home": {
     "kicker": "NASA Space Apps · Make wildfire data easier to use",
     "title": "Is this fire season normal?",
     "lead": "NIRAN compares each month's satellite fire detections with the same month in other years, then says it in one sentence.",
     "cta": "Open the globe",
+    "pickPeriod": "Pick a month",
+    "step1": "1 · The month you picked",
+    "step2": "2 · Right now",
+    "step3": "3 · On record",
+    "monthTitle": "How {period} compares with other years",
+    "ccLine": "{n} detections · usual {usual}",
+    "ccOpen": "Open bulletin",
+    "liveTitle": "This week, live from NASA",
+    "liveUnit": "fires in the last 7 days",
+    "liveUsual": "usual {n} ({vs})",
+    "liveNote": "Fires in the last 7 days (MODIS near-real-time, NASA LANCE). Not linked to the month picked above.",
+    "sumAbove": { "one": "{names} is above its usual level", "other": "{names} are above their usual level" },
+    "sumNormal": { "one": "{names} is within its usual range", "other": "{names} are within their usual range" },
+    "sumBelow": { "one": "{names} is below its usual level", "other": "{names} are below their usual level" },
+    "sumNone": "No country is above its usual level",
     "ctaMethod": "How it works",
     "examples": "Most unusual months",
     "howTitle": "Read a bulletin in 10 seconds",
@@ -182,7 +265,7 @@
       "The bars set this month against the other years."
     ],
     "levelsTitle": "Five levels, always spelled out",
-    "status": "FIRMS · MODIS C6.1 · to {date}",
+    "status": "FIRMS · {sensor} · to {date}",
     "kpiDetections": "Fire detections",
     "kpiDetectionsSub": "{period} · {n} countries",
     "kpiVs": "Against usual",
@@ -205,7 +288,19 @@
     "colPeriod": "Period",
     "colRank": "No.",
     "open": "Open {name} bulletin",
-    "archive": "{n} detections analysed, {first}–{last}"
+    "archive": "{n} detections analysed, {first}–{last}",
+    "kpiNow": "Fires, last 7 days",
+    "kpiNowSub": "{range} · NASA near-real-time",
+    "now": "Right now",
+    "nowSource": "NASA LANCE",
+    "colLast7": "Last 7 days",
+    "colSeason": "Fire season",
+    "seasonIn": "In season",
+    "seasonOut": {
+      "one": "In {n} month",
+      "other": "In {n} months"
+    },
+    "nowNote": "MODIS near-real-time detections (NASA LANCE, read from GIBS), confidence 30% and above. Usual = median of the same 7 days in the archive years. Provisional: the archive also removes non-vegetation and persistent sites."
   },
   "method": {
     "title": "Method and sources",
@@ -214,15 +309,16 @@
       {
         "title": "Where the data comes from",
         "body": [
-          "Fire detections come from NASA FIRMS. The MODIS instrument on the Terra and Aqua satellites spots unusually hot points on the ground several times a day, in pixels about 1 km wide.",
-          "We use the 2020–2024 FIRMS archive for Morocco, Australia and Brazil. Weather comes from NASA POWER, land cover from the MODIS MCD12Q1 product served by NASA GIBS, and open wildfires from NASA EONET."
+          "Fire detections come from NASA FIRMS, from two instruments. MODIS, on the Terra and Aqua satellites, spots unusually hot points on the ground in pixels about 1 km wide. VIIRS, on the Suomi NPP and NOAA-20 (also called J1) satellites, does the same with pixels of 375 m, so it sees smaller fires and splits big ones into more points.",
+          "Pick MODIS or VIIRS at the top of the page. Each sensor is only compared with itself: a VIIRS month against other VIIRS months. The two counts are not added together, and VIIRS counts are much higher for the same fires.",
+          "We use the 2020–2024 FIRMS archive for Morocco, Australia and Brazil, for both sensors. Weather comes from NASA POWER, land cover from the MODIS MCD12Q1 product served by NASA GIBS, and open wildfires from NASA EONET."
         ]
       },
       {
         "title": "What we removed",
         "body": [
           "We keep presumed vegetation fires only: volcanoes, fixed heat sources (factories, gas flares) and offshore detections are dropped.",
-          "We drop low-confidence detections (MODIS confidence below 30%).",
+          "We drop low-confidence detections: MODIS confidence below 30%, and VIIRS points flagged low.",
           "We drop places that 'burn' more than 60 days a year for several years: those are industrial sites, not fires."
         ],
         "cleaning": true
@@ -252,7 +348,7 @@
         "body": [
           "A detection is not a burned area: a large fire can make hundreds of detections, a small one none.",
           "Clouds and thick smoke hide fires, and the satellites pass only a few times a day, so short fires can be missed.",
-          "Small farm fires often fall below what MODIS can see.",
+          "Small farm fires often fall below what MODIS can see. VIIRS catches more of them.",
           "The FIRMS history here covers 2020–2024, so each month is compared with only 4 other years. The usual level is still fragile.",
           "The satellite orbits on the globe are drawn to explain how MODIS scans; they are not live positions."
         ]
@@ -268,7 +364,7 @@
     "sources": [
       {
         "name": "NASA FIRMS",
-        "detail": "MODIS Collection 6.1 fire detections, archive 2020–2024",
+        "detail": "MODIS Collection 6.1 and VIIRS 375 m (Suomi NPP, NOAA-20) fire detections, archive 2020–2024",
         "url": "https://firms.modaps.eosdis.nasa.gov"
       },
       {
@@ -278,7 +374,7 @@
       },
       {
         "name": "NASA GIBS",
-        "detail": "VIIRS Black Marble, coastlines, MODIS land cover (MCD12Q1)",
+        "detail": "Blue Marble (shaded relief, bathymetry), coastlines, MODIS land cover (MCD12Q1)",
         "url": "https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api"
       },
       {
@@ -292,7 +388,104 @@
   "cleaning": {
     "raw": "Raw rows",
     "type0": "Vegetation fires only (type 0)",
-    "confidence": "Confidence ≥ 30%",
+    "confidence": "Confidence ≥ 30% (MODIS)",
+    "confidenceViirs": "Confidence nominal or high (VIIRS)",
     "persistent": "Persistent industrial sites removed"
+  },
+  "safety": {
+    "title": "Fire safety",
+    "source": "LANCE live · FIRMS archive",
+    "nowTitle": "Right now · last 7 days",
+    "nowNote": "Live NASA satellite feed. It does not change with the month selected above.",
+    "nowLoading": "Loading near-real-time detections…",
+    "nowDown": "NASA near-real-time feed not reachable right now.",
+    "nowLine": {
+      "one": "fire detection, {range}.",
+      "other": "fire detections, {range}."
+    },
+    "nowUsual": "Usual for the same 7 days: {usual} (median of {years} archive years).",
+    "perDayCaption": "One bar per day, {range}. Taller bar = more fires.",
+    "nowPartial": "Some map tiles did not load: the count is a minimum.",
+    "perDay": "Detections per day, oldest to newest",
+    "seasonTitle": "When it burns",
+    "seasonLine": "{months}: {pct}% of a typical year's detections. Peak month: {peak}.",
+    "seasonIn": "{month} is inside the fire season.",
+    "seasonOut": {
+      "one": "The season starts in {n} month.",
+      "other": "The season starts in {n} months."
+    },
+    "seasonAxis": "Share of a typical year's detections, by month",
+    "driversTitle": "Weather in the months above usual",
+    "driversHot": "{a} of {n} were at least 0.5 °C warmer than usual. All months: {b} of {m}.",
+    "driversDry": "{a} of {n} had at least 20% less rain than usual. All months: {b} of {m}.",
+    "driversNone": "No month above the usual level in the record.",
+    "driversNote": "Counts from the record, NASA POWER weather. They describe past months and do not forecast.",
+    "doTitle": "What to do",
+    "doWhyNow": "Detections in the last 7 days are above the usual level.",
+    "doWhySeason": "This month is inside the fire season.",
+    "doWhyCalm": "Outside the fire season: time to prepare.",
+    "doAlert": [
+      "Do not burn waste, stubble or brush, and do not light fires outdoors.",
+      "Report smoke or flames at once to the emergency number.",
+      "Know two ways out of your area. Keep a bag ready: water, medicines, documents, phone charger.",
+      "Clear dry leaves and brush from around buildings.",
+      "If the authorities tell you to leave, leave early."
+    ],
+    "doCalm": [
+      "Clear dry vegetation around buildings before the season starts.",
+      "Find out how your local authority sends fire alerts, and sign up.",
+      "Agree with your household where to meet and which road to take."
+    ],
+    "emergencyLabel": "Emergency number",
+    "emergency": {
+      "MAR": "15",
+      "AUS": "000",
+      "BRA": "193"
+    },
+    "guideNote": "General wildfire guidance, not NASA data. Your civil protection authority comes first.",
+    "guideSource": "Ready.gov: Wildfires",
+    "guideUrl": "https://www.ready.gov/wildfires"
+  },
+  "compare": {
+    "title": "Compare two years",
+    "lead": "The same country, two years side by side: totals, timing, weather and what burned, from the cleaned detections.",
+    "yearA": "First year",
+    "yearB": "Second year",
+    "vs": "vs",
+    "kpiYear": "Detections {year}",
+    "vsUsual": "{v} vs a usual year",
+    "partial": "Year not complete",
+    "kpiChange": "Change {a} → {b}",
+    "kpiChangeSub": "{n} detections",
+    "kpiAbove": "Months above usual",
+    "kpiAboveSub": "months at High or more, of 12",
+    "figures": "Key figures",
+    "colMetric": "Measure",
+    "colChange": "Change",
+    "colMonth": "Month",
+    "mTotal": "Fire detections, whole year",
+    "mVsUsual": "Against a usual year",
+    "mPeak": "Busiest month",
+    "mAbove": "Months above usual",
+    "mHalf": "Half of the year's fires reached by",
+    "mHalfNote": "earlier = earlier season",
+    "mTemp": "Air temperature vs usual",
+    "mTempNote": "mean of 12 months, NASA POWER",
+    "mRain": "Rain vs usual",
+    "mRainNote": "mean of months with rain data",
+    "mForest": "Detections in forest",
+    "mForestNote": "MODIS land cover",
+    "days": {
+      "one": "{n} day",
+      "other": "{n} days"
+    },
+    "pts": "pts",
+    "season": "Season build-up",
+    "seasonAxis": "Cumulative fire detections through {a} and {b}",
+    "months": "Month by month",
+    "monthsAxis": "Fire detections per month in {a} and {b}",
+    "usualNote": "Usual = median of the same month in the other years of the record, as computed for the first year shown.",
+    "cleaning": "From raw file to these figures",
+    "cleaningNote": "Cleaning is done once per file, over all its years; every figure on this page uses the last line."
   }
 }

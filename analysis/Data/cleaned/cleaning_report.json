@@ -1,0 +1,40 @@
+{
+  "Australia": {
+    "rows_in": 1109450,
+    "dropped_duplicates": 0,
+    "dropped_invalid": 3,
+    "type_counts_in": {
+      "0": 1099828,
+      "2": 7425,
+      "3": 2194
+    },
+    "dropped_non_vegetation": 9619,
+    "rows_out": 1099828,
+    "output": "C:\\Users\\Dell\\Desktop\\cleaned\\australie_2020_2024_clean.csv"
+  },
+  "Brazil": {
+    "rows_in": 1994720,
+    "dropped_duplicates": 0,
+    "dropped_invalid": 1,
+    "type_counts_in": {
+      "0": 1968354,
+      "2": 26319,
+      "3": 46
+    },
+    "dropped_non_vegetation": 26365,
+    "rows_out": 1968354,
+    "output": "C:\\Users\\Dell\\Desktop\\cleaned\\brazil_2020_2024_clean.csv"
+  },
+  "Morocco": {
+    "rows_in": 2113,
+    "dropped_duplicates": 0,
+    "dropped_invalid": 0,
+    "type_counts_in": {
+      "0": 2048,
+      "2": 65
+    },
+    "dropped_non_vegetation": 65,
+    "rows_out": 2048,
+    "output": "C:\\Users\\Dell\\Desktop\\cleaned\\morocco_2020_2024_clean.csv"
+  }
+}

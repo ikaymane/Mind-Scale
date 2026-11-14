@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useT } from '../i18n';
 import { useApp } from '../store';
-import { regionName, type Dataset } from '../lib/data';
+import { regionName, useSensor, type Dataset } from '../lib/data';
 import { availableYears, computeVerdict, yearSeries } from '../lib/stats';
 import { LEVEL_STYLE } from '../levels';
 import { LevelIcon } from '../components/Level';
@@ -9,6 +9,7 @@ import { Verdict } from './Verdict';
 import { SeasonChart } from './SeasonChart';
 import { HistoryBars } from './HistoryBars';
 import { Conditions } from './Conditions';
+import { Safety } from './Safety';
 
 const Chevron = ({ right }: { right: boolean }) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -52,7 +53,7 @@ export function PeriodPicker({ years }: { years: number[] }) {
 }
 
 function toCsv(data: Dataset, regionId: string) {
-  const rows = data.bySeries.get(`${regionId}|MODIS`) ?? [];
+  const rows = (data.meta.sensors ?? ['MODIS']).flatMap((s) => data.bySeries.get(`${regionId}|${s}`) ?? []);
   const name = regionName(data.regionById.get(regionId)).replace(/"/g, '""');
   const head = 'region_id,region_name,sensor,year,month,detections,usual_median,p10,p90,level';
   const body = rows.map((r) => `${r.region_id},"${name}",${r.sensor},${r.year},${r.month},${r.n},${r.median},${r.p10},${r.p90},${r.level}`);
@@ -61,6 +62,7 @@ function toCsv(data: Dataset, regionId: string) {
 
 function Actions({ data, regionId }: { data: Dataset; regionId: string }) {
   const tt = useT();
+  const sensor = useSensor(data);
   const [copied, setCopied] = useState(false);
   const share = async () => {
     try { await navigator.clipboard.writeText(location.href); }
@@ -90,7 +92,7 @@ function Actions({ data, regionId }: { data: Dataset; regionId: string }) {
         </button>
       </div>
       <p className="source mono">
-        {tt.t('footer.source')}{data.meta.data_until && <> · {tt.t('footer.until', { date: tt.date(data.meta.data_until) })}</>}
+        {tt.t('footer.source', { sensor })}{data.meta.data_until && <> · {tt.t('footer.until', { date: tt.date(data.meta.data_until) })}</>}
       </p>
     </footer>
   );
@@ -100,8 +102,9 @@ function Actions({ data, regionId }: { data: Dataset; regionId: string }) {
 function Overview({ data, years }: { data: Dataset; years: number[] }) {
   const tt = useT();
   const { year, month, set } = useApp();
+  const sensor = useSensor(data);
   const rows = data.regions
-    .map((r) => ({ r, v: computeVerdict(data, r.region_id, 'MODIS', year, month) }))
+    .map((r) => ({ r, v: computeVerdict(data, r.region_id, sensor, year, month) }))
     .filter((x) => x.v)
     .sort((a, b) => (b.v!.ratio ?? 0) - (a.v!.ratio ?? 0));
   return (
@@ -133,11 +136,11 @@ function Overview({ data, years }: { data: Dataset; years: number[] }) {
 export function Bulletin({ data }: { data: Dataset }) {
   const tt = useT();
   const { regionId, year, month } = useApp();
-  const sensor = 'MODIS' as const;
+  const sensor = useSensor(data);
   const region = regionId ? data.regionById.get(regionId) : undefined;
-  const years = useMemo(() => availableYears(data, sensor), [data]);
-  const verdict = useMemo(() => (region ? computeVerdict(data, region.region_id, sensor, year, month) : null), [data, region, year, month]);
-  const series = useMemo(() => (region ? yearSeries(data, region.region_id, sensor, month) : []), [data, region, month]);
+  const years = useMemo(() => availableYears(data, sensor), [data, sensor]);
+  const verdict = useMemo(() => (region ? computeVerdict(data, region.region_id, sensor, year, month) : null), [data, region, sensor, year, month]);
+  const series = useMemo(() => (region ? yearSeries(data, region.region_id, sensor, month) : []), [data, region, sensor, month]);
 
   if (!region) return <Overview data={data} years={years} />;
   const ctx = month !== null ? data.contextIndex.get(`${region.region_id}|${year}|${month}`) : undefined;
@@ -154,6 +157,7 @@ export function Bulletin({ data }: { data: Dataset }) {
       {verdict ? (
         <>
           <Verdict v={verdict} year={year} month={month} />
+          <Safety data={data} regionId={region.region_id} />
           <SeasonChart cum={data.cumulative[sensor]?.[region.region_id]} year={year} month={month} level={verdict.level} />
           <HistoryBars series={series} year={year} month={month} median={verdict.median} />
           <Conditions ctx={ctx} month={month} />

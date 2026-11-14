@@ -1,0 +1,16 @@
+pays,year,nb_feux,moyenne_5ans,seuil_+20%,ecart_vs_moyenne_%,anomalie,moyenne_autres_annees,anomalie_LOO
+Maroc,2020,339,409.6,491.5,-17.2,False,427.2,False
+Maroc,2021,337,409.6,491.5,-17.7,False,427.8,False
+Maroc,2022,810,409.6,491.5,97.8,True,309.5,True
+Maroc,2023,409,409.6,491.5,-0.1,False,409.8,False
+Maroc,2024,153,409.6,491.5,-62.6,False,473.8,False
+Australie,2020,153882,219965.6,263958.7,-30.0,False,236486.5,False
+Australie,2021,170471,219965.6,263958.7,-22.5,False,232339.2,False
+Australie,2022,158968,219965.6,263958.7,-27.7,False,235215.0,False
+Australie,2023,394295,219965.6,263958.7,79.3,True,176383.2,True
+Australie,2024,222212,219965.6,263958.7,1.0,False,219404.0,False
+Bresil,2020,400374,393670.8,472405.0,1.7,False,391995.0,False
+Bresil,2021,335722,393670.8,472405.0,-14.7,False,408158.0,False
+Bresil,2022,357596,393670.8,472405.0,-9.2,False,402689.5,False
+Bresil,2023,353249,393670.8,472405.0,-10.3,False,403776.2,False
+Bresil,2024,521413,393670.8,472405.0,32.4,True,361735.2,True

@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { useT } from '../i18n';
 import { useApp } from '../store';
-import { regionName, type Dataset } from '../lib/data';
+import { regionName, useSensor, type Dataset } from '../lib/data';
 import { levelFor } from '../lib/stats';
 import { LevelBadge } from '../components/Level';
 import { LEVEL_STYLE } from '../levels';
@@ -15,12 +15,13 @@ import { Globe } from '../globe/Globe';
 function RegionList({ data }: { data: Dataset }) {
   const tt = useT();
   const { regionId, year, month, set } = useApp();
+  const sensor = useSensor(data);
   return (
     <div className="map-placeholder">
       <h2 className="eyebrow">{tt.t('map.listTitle')} · {tt.period(year, month)}</h2>
       <ul className="region-list">
         {data.regions.map((r) => {
-          const level = levelFor(data, r.region_id, 'MODIS', year, month);
+          const level = levelFor(data, r.region_id, sensor, year, month);
           const selected = r.region_id === regionId;
           return (
             <li key={r.region_id}>

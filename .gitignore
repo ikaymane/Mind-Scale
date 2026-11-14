@@ -3,6 +3,12 @@
 *.csv
 *.parquet
 *.npy
+*.zip
+
+# Small historical analysis tables are intentionally versioned.
+!analysis/pipeline/out/feux_par_annee.csv
+!analysis/pipeline/out/feux_par_mois.csv
+!analysis/Data/cleaned/kpi_feux_par_annee.csv
 
 # Build + deps
 node_modules/

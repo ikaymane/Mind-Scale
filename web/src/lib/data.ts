@@ -1,7 +1,7 @@
 /** Chargement des JSON pré-calculés (contrats §7) + index pour accès rapide. */
 import { useEffect, useState } from 'react';
 import type { Level } from '../levels';
-import type { Lang, Sensor } from '../store';
+import { useApp, type Lang, type Sensor } from '../store';
 
 export interface AnomalyRow {
   region_id: string; sensor: Sensor; year: number; month: number;
@@ -15,6 +15,8 @@ export interface CumulativeRegion {
 export interface ContextRow {
   region_id: string; year: number; month: number;
   t2m_anom: number | null; precip_anom_pct: number | null;
+  /** detections of the month that got a land-cover class (weight for yearly shares) */
+  fires_classified?: number;
   wind_mean?: number | null; rh_mean?: number | null;
   landcover?: Partial<Record<'forest' | 'cropland' | 'shrub' | 'other', number>> | null;
 }
@@ -23,10 +25,14 @@ export interface Region {
   /** [lat, lon] et [ouest, sud, est, nord] — emprise des détections, pour le globe */
   center?: [number, number]; bbox?: [number, number, number, number];
 }
+export interface Cleaning { file: string; satellites?: string; steps: [string, number][] }
 export interface Meta {
   generated?: string; data_until?: string; first_year?: number; last_year?: number;
   region_level?: 'country' | 'admin1';
-  cleaning?: Record<string, { file: string; steps: [string, number][] }>;
+  /** sensors present in the build, display order (MODIS first) */
+  sensors?: Sensor[];
+  /** sensor → country ISO3 → cleaning steps */
+  cleaning?: Partial<Record<Sensor, Record<string, Cleaning>>>;
 }
 
 export interface Dataset {
@@ -43,6 +49,8 @@ export interface Dataset {
 }
 
 const BASE = `${import.meta.env.BASE_URL}data/`;
+/** MODIS keeps the historical file names; other sensors get a suffix: cumulative_VIIRS.json */
+const fileFor = (stem: string, sensor: Sensor) => `${stem}${sensor === 'MODIS' ? '' : `_${sensor}`}.json`;
 
 async function getJson<T>(name: string, optional = false): Promise<T | null> {
   try {
@@ -60,14 +68,17 @@ let promise: Promise<Dataset> | null = null;
 export function loadDataset(): Promise<Dataset> {
   if (promise) return promise;
   promise = (async () => {
-    const [geo, anomalies, cumModis, context, meta] = await Promise.all([
+    const [geo, anomalies, context, meta] = await Promise.all([
       getJson<{ features: { properties: Region }[] }>('regions.geojson'),
       getJson<AnomalyRow[]>('anomalies.json'),
-      getJson<Record<string, CumulativeRegion>>('cumulative.json', true),
       // context.json (M3 : météo + végétation) — facultatif tant qu'il n'est pas produit
       getJson<ContextRow[]>('context.json', true),
       getJson<Meta>('meta.json', true),
     ]);
+    const sensors: Sensor[] = meta?.sensors?.length ? meta.sensors : ['MODIS'];
+    const cumFiles = await Promise.all(sensors.map((s) => getJson<Record<string, CumulativeRegion>>(fileFor('cumulative', s), true)));
+    const cumulative: Dataset['cumulative'] = {};
+    sensors.forEach((s, i) => { if (cumFiles[i]) cumulative[s] = cumFiles[i]!; });
     const regions = (geo?.features ?? []).map((f) => f.properties);
     const anomalyIndex = new Map<string, AnomalyRow>();
     const bySeries = new Map<string, AnomalyRow[]>();
@@ -85,9 +96,9 @@ export function loadDataset(): Promise<Dataset> {
       anomalies: anomalies ?? [],
       anomalyIndex,
       bySeries,
-      cumulative: { MODIS: cumModis ?? undefined },
+      cumulative,
       contextIndex,
-      meta: meta ?? {},
+      meta: { ...meta, sensors },
     };
   })();
   return promise;
@@ -110,10 +121,16 @@ export function useDataset(): DataState {
 
 export const regionName = (r: Region | undefined, _lang?: Lang) => (r ? r.name_en || r.name_fr : '');
 
-/** Cellules de feu pour le globe (chargées à part : ~200 Ko gzip) */
+/** The sensor chosen in the app, if this build has it; MODIS otherwise. */
+export function useSensor(data: Dataset): Sensor {
+  const s = useApp((st) => st.sensor);
+  return data.meta.sensors?.includes(s) ? s : 'MODIS';
+}
+
+/** Cellules de feu pour le globe (chargées à part : ~200 Ko gzip), un fichier par capteur */
 export interface GlobeCellsFile { step: number; years: number[]; regions: string[]; cells: number[][] }
-let cellsPromise: Promise<GlobeCellsFile | null> | null = null;
-export function loadGlobeCells() {
-  cellsPromise ??= getJson<GlobeCellsFile>('globe_cells.json', true);
-  return cellsPromise;
+const cellsPromise = new Map<Sensor, Promise<GlobeCellsFile | null>>();
+export function loadGlobeCells(sensor: Sensor = 'MODIS') {
+  if (!cellsPromise.has(sensor)) cellsPromise.set(sensor, getJson<GlobeCellsFile>(fileFor('globe_cells', sensor), true));
+  return cellsPromise.get(sensor)!;
 }

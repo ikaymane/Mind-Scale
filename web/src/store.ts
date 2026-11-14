@@ -1,13 +1,13 @@
 /**
  * Shared state, globe ↔ bulletin: { regionId, year, month, sensor, mode, page }.
- * Mirrored in the URL so every view can be shared: ?page=app&region=MAR&year=2022&month=7
+ * Mirrored in the URL so every view can be shared: ?page=app&region=MAR&year=2022&month=7&sensor=VIIRS
  */
 import { create } from 'zustand';
 
 export type Sensor = 'MODIS' | 'VIIRS';
 export type Mode = 'history' | 'anomaly' | 'live';
 export type Lang = 'en';
-export type Page = 'home' | 'app' | 'method';
+export type Page = 'home' | 'app' | 'compare' | 'method';
 
 export interface AppState {
   /** null = whole-globe view */
@@ -15,6 +15,8 @@ export interface AppState {
   year: number;
   /** 1..12, or null = whole year */
   month: number | null;
+  /** second year of the Compare page */
+  yearB: number;
   sensor: Sensor;
   mode: Mode;
   lang: Lang;
@@ -26,6 +28,7 @@ const DEFAULTS = {
   regionId: 'MAR' as string | null,
   year: 2022,
   month: 7 as number | null,
+  yearB: 2023,
   sensor: 'MODIS' as Sensor,
   mode: 'anomaly' as Mode,
   page: 'home' as Page,
@@ -40,14 +43,16 @@ function fromUrl() {
   const monthRaw = q.get('month');
   const month = monthRaw === 'all' ? null : Number(monthRaw);
   const region = q.get('region');
+  const yearB = Number(q.get('b'));
   return {
     regionId: region === 'all' ? null : region ?? DEFAULTS.regionId,
     year: year >= 2001 && year <= 2100 ? year : DEFAULTS.year,
     month: monthRaw === null ? DEFAULTS.month : month === null || (month >= 1 && month <= 12) ? month : DEFAULTS.month,
+    yearB: yearB >= 2001 && yearB <= 2100 ? yearB : DEFAULTS.yearB,
     sensor: oneOf(q.get('sensor'), ['MODIS', 'VIIRS'] as const, DEFAULTS.sensor),
     mode: oneOf(q.get('mode'), ['history', 'anomaly', 'live'] as const, DEFAULTS.mode),
     lang: 'en' as Lang,
-    page: oneOf(q.get('page'), ['home', 'app', 'method'] as const, DEFAULTS.page),
+    page: oneOf(q.get('page'), ['home', 'app', 'compare', 'method'] as const, DEFAULTS.page),
   };
 }
 
@@ -59,6 +64,12 @@ export function toUrl(s: Omit<AppState, 'set'>): string {
     q.set('year', String(s.year));
     q.set('month', s.month === null ? 'all' : String(s.month));
   }
+  if (s.page === 'compare') {
+    if (s.regionId) q.set('region', s.regionId);
+    q.set('year', String(s.year));
+    q.set('b', String(s.yearB));
+  }
+  if (s.sensor !== DEFAULTS.sensor) q.set('sensor', s.sensor);
   const qs = q.toString();
   return `${location.pathname}${qs ? `?${qs}` : ''}`;
 }

@@ -107,3 +107,12 @@ export function availableYears(data: Dataset, sensor: Sensor): number[] {
   for (const a of data.anomalies) if (a.sensor === sensor) s.add(a.year);
   return [...s].sort((a, b) => a - b);
 }
+
+/** Robust z of `n` against reference counts (log1p, median / MAD): the same rule as the pipeline. */
+export function robustZ(n: number, ref: number[]): number {
+  const logs = ref.map((v) => Math.log1p(v));
+  const med = quantile(logs, 0.5);
+  const mad = Math.max(quantile(logs.map((v) => Math.abs(v - med)), 0.5), 0.5 / 1.4826);
+  return (Math.log1p(n) - med) / (1.4826 * mad);
+}
+export const median = (arr: number[]) => quantile(arr, 0.5);

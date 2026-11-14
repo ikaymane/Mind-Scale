@@ -1,6 +1,6 @@
 /**
  * NIRAN 3D globe (three.js, no React).
- * - Earth: NASA GIBS VIIRS Black Marble + Coastlines_15m (2K first, then 8K).
+ * - Earth: NASA GIBS Blue Marble (shaded relief + bathymetry) + Coastlines_15m (2K first, then 8K).
  * - Fire cells: real MODIS detections in 0.5° cells (globe_cells.json) for the chosen period.
  * - Fuel: MODIS land cover (forest / shrub mask) fades in when zoomed.
  * - Terra and Aqua (the two MODIS satellites) on illustrative polar orbits that turn WITH the Earth;
@@ -13,7 +13,7 @@ import * as THREE from 'three';
 const D2R = Math.PI / 180;
 const GIBS_BASE = 'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&SRS=EPSG:4326&STYLES=';
 const GIBS = `${GIBS_BASE}&BBOX=-180,-90,180,90`;
-const night = (w: number) => `${GIBS}&LAYERS=VIIRS_Black_Marble&FORMAT=image/jpeg&WIDTH=${w}&HEIGHT=${w / 2}`;
+const day = (w: number) => `${GIBS}&LAYERS=BlueMarble_ShadedRelief_Bathymetry&FORMAT=image/jpeg&WIDTH=${w}&HEIGHT=${w / 2}`;
 const coast = (w: number) => `${GIBS}&LAYERS=Coastlines_15m&FORMAT=image/png&TRANSPARENT=TRUE&WIDTH=${w}&HEIGHT=${w / 2}`;
 
 const ORBIT_R = 1.3;
@@ -85,6 +85,7 @@ export class GlobeScene {
   private pinch0 = 0;
   private infoTick = 0;
   private aspectK = 1;
+  private recent?: THREE.Points;
   private replay: { day: number; days: number; playing: boolean; lastSent: number } | null = null;
   private ro: ResizeObserver;
   private io: IntersectionObserver;
@@ -100,23 +101,22 @@ export class GlobeScene {
     const sun = new THREE.DirectionalLight(0xffffff, 2.2);
     sun.position.set(4, 2.5, 5);
     this.scene.add(sun);
-    this.scene.add(this.makeStars());
 
     // --- Earth ---
     this.scene.add(this.earth);
     const aniso = this.renderer.capabilities.getMaxAnisotropy();
-    const globeMat = new THREE.MeshBasicMaterial({ color: 0x0c1730 });
+    const globeMat = new THREE.MeshBasicMaterial({ color: 0x9db3c9 });
     this.globe = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 96), globeMat);
     this.earth.add(this.globe);
-    const coastMat = new THREE.MeshBasicMaterial({ color: 0x8fe3ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+    const coastMat = new THREE.MeshBasicMaterial({ color: 0x0b1a33, transparent: true, opacity: 0, depthWrite: false });
     this.earth.add(new THREE.Mesh(new THREE.SphereGeometry(1.0012, 128, 96), coastMat));
-    this.loadProgressive([night(2048), night(8192)], (tex) => {
+    this.loadProgressive([day(2048), day(8192)], (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = aniso;
       globeMat.map?.dispose(); globeMat.map = tex; globeMat.color.set(0xffffff); globeMat.needsUpdate = true;
     });
     this.loadProgressive([coast(4096), coast(8192)], (tex) => {
       tex.anisotropy = aniso;
-      coastMat.map?.dispose(); coastMat.map = tex; coastMat.opacity = 0.6; coastMat.needsUpdate = true;
+      coastMat.map?.dispose(); coastMat.map = tex; coastMat.opacity = 0.45; coastMat.needsUpdate = true;
     });
     // fuel layer (MODIS land cover), loaded on first zoom
     this.forestMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
@@ -150,18 +150,6 @@ export class GlobeScene {
     }));
   }
 
-  private makeStars() {
-    const pos = new Float32Array(2000 * 3);
-    for (let i = 0; i < 2000; i++) {
-      const v = new THREE.Vector3().randomDirection().multiplyScalar(60 + Math.random() * 30);
-      pos.set([v.x, v.y, v.z], i * 3);
-    }
-    return new THREE.Points(
-      new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(pos, 3)),
-      new THREE.PointsMaterial({ color: 0xcfd9ff, size: 0.1, transparent: true, opacity: 0.5, depthWrite: false }),
-    );
-  }
-
   private makeGraticule() {
     const pts: number[] = [];
     const push = (a: THREE.Vector3, b: THREE.Vector3) => pts.push(a.x, a.y, a.z, b.x, b.y, b.z);
@@ -170,7 +158,7 @@ export class GlobeScene {
     for (let lon = -180; lon < 180; lon += 15)
       for (let lat = -88; lat < 88; lat += 2) push(llToVec(lat, lon, 1.002), llToVec(lat + 2, lon, 1.002));
     const g = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-    return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x9fc6ff, transparent: true, opacity: 0.06, depthWrite: false }));
+    return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.12, depthWrite: false }));
   }
 
   private makeAtmosphere() {
@@ -180,12 +168,12 @@ export class GlobeScene {
     g.add(new THREE.Mesh(new THREE.SphereGeometry(1.01, 96, 64), new THREE.ShaderMaterial({
       transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, vertexShader: vs,
       fragmentShader: `varying vec3 vN; varying vec3 vP;
-        void main(){ float f = pow(1.0 - max(dot(vN, normalize(-vP)), 0.0), 4.0); gl_FragColor = vec4(vec3(0.35, 0.68, 1.0) * f * 0.8, f); }`,
+        void main(){ float f = pow(1.0 - max(dot(vN, normalize(-vP)), 0.0), 4.0); gl_FragColor = vec4(vec3(0.55, 0.78, 1.0) * f * 0.5, f * 0.5); }`,
     })));
     g.add(new THREE.Mesh(new THREE.SphereGeometry(1.15, 96, 64), new THREE.ShaderMaterial({
       transparent: true, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false, vertexShader: vs,
       fragmentShader: `varying vec3 vN; varying vec3 vP;
-        void main(){ float f = pow(max(-dot(vN, normalize(-vP)), 0.0), 3.0); gl_FragColor = vec4(vec3(0.3, 0.6, 1.0) * f, f); }`,
+        void main(){ float f = pow(max(-dot(vN, normalize(-vP)), 0.0), 3.0); gl_FragColor = vec4(vec3(0.3, 0.55, 0.95) * f * 0.35, f * 0.35); }`,
     })));
     return g;
   }
@@ -202,7 +190,7 @@ export class GlobeScene {
     for (let i = 0; i <= 256; i++) { const u = (i / 256) * Math.PI * 2; orbitPts.push(ORBIT_R * Math.cos(u), 0, -ORBIT_R * Math.sin(u)); }
     tilt.add(new THREE.Line(
       new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(orbitPts, 3)),
-      new THREE.LineDashedMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.2, dashSize: 0.025, gapSize: 0.02 }),
+      new THREE.LineDashedMaterial({ color: 0x0b3d91, transparent: true, opacity: 0.35, dashSize: 0.025, gapSize: 0.02 }),
     ).computeLineDistances());
 
     const body = new THREE.Group();
@@ -226,21 +214,21 @@ export class GlobeScene {
     coneGeo.rotateX(-Math.PI / 2);
     coneGeo.translate(0, 0, h / 2);
     const beamMat = new THREE.ShaderMaterial({
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+      transparent: true, depthWrite: false, side: THREE.DoubleSide,
       uniforms: { uTime: { value: 0 }, uFade: { value: 1 } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
       fragmentShader: `uniform float uTime; uniform float uFade; varying vec2 vUv;
         void main(){
           float base = pow(1.0 - vUv.y, 1.6) * 0.16;
           float sweep = smoothstep(0.93, 1.0, fract(vUv.y - uTime * 0.6)) * 0.3 * (1.0 - vUv.y);
-          gl_FragColor = vec4(vec3(0.5, 0.88, 1.0) * (base + sweep) * uFade, 1.0);
+          gl_FragColor = vec4(vec3(0.04, 0.24, 0.57), (base + sweep) * 1.6 * uFade);
         }`,
     });
     body.add(new THREE.Mesh(coneGeo, beamMat));
 
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(footR * 0.93, footR, 96),
-      new THREE.MeshBasicMaterial({ color: 0x8fe3ff, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }),
+      new THREE.MeshBasicMaterial({ color: 0x0b3d91, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }),
     );
     this.earth.add(ring);
     return { name, plane, body, ring, beamMat, phase, inSwath: 0, sub: new THREE.Vector3() };
@@ -266,7 +254,7 @@ export class GlobeScene {
     for (const [name, fill] of [['aI', 0], ['aScan', -100], ['aFocus', 1], ['aStart', 0]] as const)
       geo.setAttribute(name, new THREE.BufferAttribute(new Float32Array(n).fill(fill), 1));
     this.pointMat = new THREE.ShaderMaterial({
-      transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
+      transparent: true, depthWrite: false, depthTest: false, premultipliedAlpha: true,
       uniforms: { uTime: { value: 0 }, uPR: { value: this.renderer.getPixelRatio() }, uProj: { value: 800 }, uDay: { value: 999 } },
       vertexShader: `attribute float aI; attribute float aScan; attribute float aFocus; attribute float aStart;
         uniform float uTime; uniform float uPR; uniform float uProj; uniform float uDay;
@@ -291,16 +279,20 @@ export class GlobeScene {
           if (d > 0.5) discard;
           float r = d * (1.0 + 1.8 * vIgnite);
           float core = 1.0 - smoothstep(0.36, 0.46, r);
-          vec3 col = mix(vec3(0.95, 0.30, 0.08), vec3(1.0, 0.78, 0.32), vI);
-          col = mix(col, vec3(1.0, 0.97, 0.88), vGlow * 0.75);
+          vec3 col = mix(vec3(0.72, 0.07, 0.03), vec3(1.0, 0.42, 0.0), vI);
+          col = mix(col, vec3(1.0, 0.86, 0.3), vGlow * 0.7);
           float ring = vIgnite * (1.0 - smoothstep(0.02, 0.05, abs(d - (0.5 - 0.22 * vIgnite))));
           float front = smoothstep(-0.05, 0.2, vFacing);
           float a = max(core * (0.78 + 0.22 * vGlow), ring) * mix(0.08, 1.0, front) * mix(0.22, 1.0, vFocus);
-          vec3 c = mix(col, vec3(1.0, 0.92, 0.7), ring);
+          vec3 c = mix(col, vec3(0.6, 0.0, 0.0), ring);
           gl_FragColor = vec4(c * a, a);
         }`,
     });
-    if (this.points) this.earth.remove(this.points);
+    if (this.points) {  // sensor switch: replace the previous cloud and free its GPU buffers
+      this.earth.remove(this.points);
+      this.points.geometry.dispose();
+      (this.points.material as THREE.Material).dispose();
+    }
     this.points = new THREE.Points(geo, this.pointMat);
     this.points.renderOrder = 2;
     this.earth.add(this.points);
@@ -350,7 +342,7 @@ export class GlobeScene {
     list.forEach((e, i) => { const v = llToVec(e.lat, e.lon, 1.004); pos.set([v.x, v.y, v.z], i * 3); });
     const geo = new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(pos, 3));
     const mat = new THREE.ShaderMaterial({
-      transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
+      transparent: true, depthWrite: false, depthTest: false, premultipliedAlpha: true,
       uniforms: { uTime: { value: 0 }, uPR: { value: this.renderer.getPixelRatio() } },
       vertexShader: `uniform float uPR; varying float vFacing;
         void main(){ vec4 mv = modelViewMatrix * vec4(position,1.); vFacing = dot(normalize(normalMatrix*position), normalize(-mv.xyz)); gl_PointSize = 18.0 * uPR; gl_Position = projectionMatrix * mv; }`,
@@ -361,7 +353,8 @@ export class GlobeScene {
           float ring = (1.0 - smoothstep(0.0, 0.05, abs(d - 0.12 - 0.36 * t))) * (1.0 - t);
           float dot_ = 1.0 - smoothstep(0.08, 0.12, d);
           float a = max(ring * 0.9, dot_) * smoothstep(0.0, 0.2, vFacing);
-          gl_FragColor = vec4(vec3(1.0, 0.95, 0.85) * a, a);
+          vec3 c = mix(vec3(0.62, 0.0, 0.22), vec3(1.0), 1.0 - smoothstep(0.03, 0.06, d));
+          gl_FragColor = vec4(c * a, a);
         }`,
     });
     this.events = new THREE.Points(geo, mat);
@@ -369,7 +362,33 @@ export class GlobeScene {
     this.events.visible = visible;
     this.earth.add(this.events);
   }
-  setEventsVisible(v: boolean) { if (this.events) this.events.visible = v; }
+  setEventsVisible(v: boolean) { if (this.events) this.events.visible = v; if (this.recent) this.recent.visible = v; }
+
+  /** Near-real-time detections of the last days (NASA GIBS): small crimson dots */
+  setRecent(list: { lat: number; lon: number }[], visible: boolean) {
+    if (this.recent) { this.earth.remove(this.recent); this.recent.geometry.dispose(); this.recent = undefined; }
+    if (!list.length) return;
+    const pos = new Float32Array(list.length * 3);
+    list.forEach((e, i) => { const v = llToVec(e.lat, e.lon, 1.0045); pos.set([v.x, v.y, v.z], i * 3); });
+    const geo = new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, depthTest: false, premultipliedAlpha: true,
+      uniforms: { uPR: { value: this.renderer.getPixelRatio() } },
+      vertexShader: `uniform float uPR; varying float vFacing;
+        void main(){ vec4 mv = modelViewMatrix * vec4(position,1.); vFacing = dot(normalize(normalMatrix*position), normalize(-mv.xyz)); gl_PointSize = 6.0 * uPR; gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `varying float vFacing;
+        void main(){
+          float d = length(gl_PointCoord - 0.5);
+          float a = (1.0 - smoothstep(0.38, 0.5, d)) * smoothstep(0.0, 0.2, vFacing);
+          vec3 c = mix(vec3(1.0), vec3(0.62, 0.0, 0.22), smoothstep(0.2, 0.3, d));
+          gl_FragColor = vec4(c * a, a);
+        }`,
+    });
+    this.recent = new THREE.Points(geo, mat);
+    this.recent.renderOrder = 4;
+    this.recent.visible = visible;
+    this.earth.add(this.recent);
+  }
 
   focus(id: string | null) {
     this.focused = id;
@@ -406,7 +425,7 @@ export class GlobeScene {
     const geo = (r: number) => new THREE.SphereGeometry(r, 96, 96, (w + 180) * D2R, lonSpan * D2R, (90 - n) * D2R, latSpan * D2R);
     const group = new THREE.Group();
     const nightMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
-    const coastMat = new THREE.MeshBasicMaterial({ color: 0x8fe3ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+    const coastMat = new THREE.MeshBasicMaterial({ color: 0x0b1a33, transparent: true, opacity: 0, depthWrite: false });
     const nightMesh = new THREE.Mesh(geo(1.0002), nightMat); nightMesh.renderOrder = 0.5;
     const coastMesh = new THREE.Mesh(geo(1.0013), coastMat); coastMesh.renderOrder = 1.5;
     group.add(nightMesh, coastMesh);
@@ -415,7 +434,7 @@ export class GlobeScene {
     this.patch = patch;
     const loader = new THREE.TextureLoader().setCrossOrigin('anonymous');
     const aniso = this.renderer.capabilities.getMaxAnisotropy();
-    loader.load(url('VIIRS_Black_Marble', 'image/jpeg'), (t) => {
+    loader.load(url('BlueMarble_ShadedRelief_Bathymetry', 'image/jpeg'), (t) => {
       if (this.patch !== patch) { t.dispose(); return; }
       t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = aniso; nightMat.map = t; nightMat.needsUpdate = true; patch.loaded[0] = true;
     });

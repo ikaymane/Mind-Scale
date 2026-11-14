@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../i18n';
 import { useApp } from '../store';
-import { loadGlobeCells, regionName, type Dataset } from '../lib/data';
+import { loadGlobeCells, regionName, useSensor, type Dataset } from '../lib/data';
 import { levelFor } from '../lib/stats';
 import { loadEonet } from '../lib/eonet';
+import { useNow } from '../lib/now';
 import { LevelBadge } from '../components/Level';
-import type { GlobeScene, LiveEvent, ReplayInfo, SatInfo } from './scene';
+import type { GlobeScene, LiveEvent, ReplayInfo } from './scene';
 
-const fmtLL = (lat: number, lon: number) =>
-  `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? 'N' : 'S'} ${Math.abs(lon).toFixed(1)}°${lon >= 0 ? 'E' : 'W'}`;
 const daysIn = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate();
 
 function webglOk() {
@@ -26,11 +25,12 @@ export function Globe({ data, mode, onPick, onUnsupported }: {
   const host = useRef<HTMLDivElement>(null);
   const [scene, setScene] = useState<GlobeScene | null>(null);
   const [ready, setReady] = useState(false);
-  const [sats, setSats] = useState<SatInfo[]>([]);
   const [replay, setReplay] = useState<ReplayInfo | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [events, setEvents] = useState<LiveEvent[]>([]);
   const [showLive, setShowLive] = useState(true);
+  const now = useNow(data);
+  const sensor = useSensor(data);
   const labelEls = useRef(new Map<string, HTMLElement>());
   const satEls = useRef(new Map<string, HTMLElement>());
   const pickRef = useRef(onPick);
@@ -52,7 +52,6 @@ export function Globe({ data, mode, onPick, onUnsupported }: {
           reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
           forestMaskUrl: `${import.meta.env.BASE_URL}data/forest_mask.png`,
           onPick: (id) => pickRef.current(id),
-          onSatInfo: setSats,
           onReplay: setReplay,
           onZoom: setZoomed,
         });
@@ -69,7 +68,7 @@ export function Globe({ data, mode, onPick, onUnsupported }: {
     scene.setRegions(regions);
     labelEls.current.forEach((el, id) => scene.setLabel(id, el));
     satEls.current.forEach((el, id) => scene.setSatLabel(id, el));
-    loadGlobeCells().then((cells) => {
+    loadGlobeCells(sensor).then((cells) => {
       if (!alive || !cells) return;
       scene.setCells(cells);
       const s = useApp.getState();
@@ -79,10 +78,11 @@ export function Globe({ data, mode, onPick, onUnsupported }: {
     });
     loadEonet().then((ev) => { if (alive) { setEvents(ev); scene.setEvents(ev, true); } }).catch(() => {});
     return () => { alive = false; };
-  }, [scene, regions, mode]);
+  }, [scene, regions, mode, sensor]);
 
   useEffect(() => { if (ready) scene?.setPeriod(year, month); }, [scene, ready, year, month]);
   useEffect(() => { if (ready && mode === 'app') scene?.focus(regionId); }, [scene, ready, regionId, mode]);
+  useEffect(() => { if (scene && now) scene.setRecent(now.points, showLive); }, [scene, now]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { scene?.setEventsVisible(showLive); }, [scene, showLive]);
 
   const focused = mode === 'app' && !!regionId;
@@ -95,7 +95,7 @@ export function Globe({ data, mode, onPick, onUnsupported }: {
 
       <div className="globe-labels">
         {data.regions.map((r) => {
-          const level = levelFor(data, r.region_id, 'MODIS', year, month);
+          const level = levelFor(data, r.region_id, sensor, year, month);
           const sel = mode === 'app' && r.region_id === regionId;
           return (
             <button
@@ -128,10 +128,10 @@ export function Globe({ data, mode, onPick, onUnsupported }: {
           <span className="glass-chip">{tt.t('globe.hint')}</span>
         )}
         <div className="globe-top-end">
-          {events.length > 0 && (
+          {(events.length > 0 || !!now) && (
             <button className={`glass-chip live-chip ${showLive ? 'is-on' : ''}`} aria-pressed={showLive} onClick={() => setShowLive((v) => !v)} title={tt.t('globe.liveToggle')}>
               <span className="live-dot" aria-hidden="true" />
-              {tt.tp('globe.live', events.length, { n: tt.num(events.length) })}
+              {now ? tt.tp('globe.recent', now.total, { n: tt.num(now.total) }) : tt.tp('globe.live', events.length, { n: tt.num(events.length) })}
             </button>
           )}
           <span className="glass-chip mono">{tt.period(year, month)}</span>
@@ -139,21 +139,8 @@ export function Globe({ data, mode, onPick, onUnsupported }: {
       </div>
 
       <div className="globe-bottom">
-        {!zoomed && sats.length > 0 && (
-          <div className="globe-hud">
-            {sats.map((s) => (
-              <div key={s.name} className="hud-row">
-                <span className="hud-dot" />
-                <span className="hud-name">{tt.t('globe.sat', { name: s.name })}</span>
-                <span className="hud-ll mono">{fmtLL(s.lat, s.lon)}</span>
-                <span className={`hud-n ${s.inSwath > 0 ? 'is-hot' : ''}`}>{tt.tp('globe.inSwath', s.inSwath, { n: tt.num(s.inSwath) })}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
         {canReplay && (
-          <div className="replay">
+          <div className={`replay ${replay ? 'is-open' : ''}`} data-tour="replay">
             <button
               className="replay-btn"
               onClick={() => (replay?.playing ? scene?.pauseReplay() : scene?.startReplay(days))}
@@ -174,6 +161,7 @@ export function Globe({ data, mode, onPick, onUnsupported }: {
                   <span>{tt.tp('globe.burning', replay.burning, { n: tt.num(replay.burning) })}</span>
                   {replay.newToday > 0 && <span className="is-new">+{tt.tp('globe.newToday', replay.newToday, { n: tt.num(replay.newToday) })}</span>}
                 </span>
+                <p className="replay-hint">{tt.t('globe.replayHint')}</p>
               </>
             )}
           </div>
@@ -185,11 +173,10 @@ export function Globe({ data, mode, onPick, onUnsupported }: {
             <span className="key"><span className="key-sw key-forest" />{tt.t('globe.forest')}</span>
             <span className="key"><span className="key-sw key-shrub" />{tt.t('globe.shrub')}</span>
           </>}
-          {showLive && events.length > 0 && <span className="key"><span className="key-live" />{tt.t('globe.liveSource')}</span>}
-          <span className="globe-credit">{tt.t('globe.imagery')}{zoomed ? ` · ${tt.t('globe.landSource')}` : ''}</span>
+          {showLive && now && <span className="key"><span className="key-live" />{tt.t('globe.recentSource')}</span>}
+          {showLive && !now && events.length > 0 && <span className="key"><span className="key-live" />{tt.t('globe.liveSource')}</span>}
+          <span className="globe-credit" title={tt.t('globe.note')}>{tt.t('globe.imagery')}{zoomed ? ` · ${tt.t('globe.landSource')}` : ` · ${tt.t('globe.orbits')}`}</span>
         </div>
-        {replay && <p className="globe-note">{tt.t('globe.replayHint')}</p>}
-        {!replay && !zoomed && <p className="globe-note">{tt.t('globe.note')}</p>}
       </div>
 
       {!ready && <div className="globe-loading"><span className="spinner" aria-hidden="true" /></div>}

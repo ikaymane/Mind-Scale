@@ -1,21 +1,43 @@
 import { useState } from 'react';
 import { useT } from '../i18n';
-import { useApp, type Page } from '../store';
+import { useApp, type Page, type Sensor } from '../store';
 import type { Region } from '../lib/data';
 import { Logo } from './Logo';
 import { RegionSearch } from './RegionSearch';
+import { useTour } from './Tour';
 
 const NAV: { page: Page; key: string }[] = [
   { page: 'home', key: 'nav.overview' },
   { page: 'app', key: 'nav.bulletin' },
+  { page: 'compare', key: 'nav.compare' },
   { page: 'method', key: 'nav.method' },
 ];
 
-export function Header({ regions, until }: { regions: Region[]; until?: string }) {
+/** MODIS / VIIRS switch: shown only when the build holds more than one sensor. */
+function SensorSwitch({ sensors }: { sensors: Sensor[] }) {
+  const { t } = useT();
+  const raw = useApp((s) => s.sensor);
+  const set = useApp((s) => s.set);
+  const current = sensors.includes(raw) ? raw : sensors[0];
+  if (sensors.length < 2) return null;
+  return (
+    <div className="sensor-switch" data-tour="sensor" role="group" aria-label={t('sensor.label')}>
+      {sensors.map((s) => (
+        <button key={s} className={current === s ? 'is-on' : ''} aria-pressed={current === s} title={t(`sensor.${s}`)} onClick={() => set({ sensor: s })}>
+          {s}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function Header({ regions, until, sensors = ['MODIS'] }: { regions: Region[]; until?: string; sensors?: Sensor[] }) {
   const tt = useT();
   const { t } = tt;
   const page = useApp((s) => s.page);
   const set = useApp((s) => s.set);
+  const raw = useApp((s) => s.sensor);
+  const sensor = sensors.includes(raw) ? raw : sensors[0];
   const [searchOpen, setSearchOpen] = useState(false);
 
   return (
@@ -33,7 +55,12 @@ export function Header({ regions, until }: { regions: Region[]; until?: string }
           ))}
         </nav>
 
-        {until && <p className="header-status mono"><span className="status-dot" aria-hidden="true" />{t('home.status', { date: tt.date(until) })}</p>}
+        <button className="tour-btn" onClick={() => useTour.getState().start()} title={t('tour.headerTitle')}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M10 8.5v7l5.5-3.5z" fill="currentColor" stroke="none" /></svg>
+          <span>{t('tour.header')}</span>
+        </button>
+        <SensorSwitch sensors={sensors} />
+        {until && <p className="header-status mono"><span className="status-dot" aria-hidden="true" />{t('home.status', { sensor, date: tt.date(until) })}</p>}
 
         <div className="header-search">
           <RegionSearch regions={regions} />
