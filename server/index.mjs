@@ -219,11 +219,13 @@ function computeStatus() {
 const watches = new Map();   // region_id → { region_id, name, reason, by, since }
 const alerts = [];           // newest first, capped
 const alerted = new Map();   // cluster key → time (no repeat alert for the same 10 km cell within 24 h)
+const stopped = new Set();   // region_ids a person stopped: the agent must not put them back on watch by itself
 const sse = new Set();
 
-function startWatch(region_id, reason, by = 'agent') {
+function startWatch(region_id, reason, by = 'agent', auto = false) {
   const r = REGIONS.find((x) => x.region_id === region_id);
   if (!r) return null;
+  if (!auto) stopped.delete(region_id);   // a person (or the chat) asked for it: lift the stop
   if (!watches.has(region_id)) {
     watches.set(region_id, { region_id, name: r.name_en, reason, by, since: new Date().toISOString() });
     log('watch', `Watch started on ${r.name_en} by the ${by}: ${reason}. From now on every new NASA detection there is checked.`, { region_id });
@@ -265,7 +267,12 @@ async function dispatch(alert) {
 
 async function runWatch() {
   // the agent "senses" risk on its own too: any country whose last 7 days are above usual is watched
-  for (const s of live.status) if (s.level && ELEVATED.has(s.level)) startWatch(s.region_id, `Last 7 days: ${s.n} detections vs usual ${s.usual} (${s.level})`, 'agent');
+  // ...except countries a person stopped: their stop wins until they start the watch again
+  for (const s of live.status) {
+    if (!s.level || !ELEVATED.has(s.level) || watches.has(s.region_id)) continue;
+    if (stopped.has(s.region_id)) { log('watch', `${s.name} is ${s.level}, but its watch was stopped by hand: not watching it again until someone restarts it.`, { region_id: s.region_id }); continue; }
+    startWatch(s.region_id, `Last 7 days: ${s.n} detections vs usual ${s.usual} (${s.level})`, 'agent', true);
+  }
   const dayAgo = Date.now() - 864e5;
   for (const [k, t] of alerted) if (t < dayAgo) alerted.delete(k);
   const stamp = (p) => `${p.date}${p.time}`;
@@ -487,6 +494,7 @@ async function runTool(name, args, actions) {
     }
     case 'stop_watch': {
       if (!r) return { error: 'country required' };
+      stopped.add(r.region_id);
       const was = watches.delete(r.region_id);
       if (was) { log('watch', `Watch stopped on ${r.name_en} (asked in chat).`, { region_id: r.region_id }); actions.push({ type: 'unwatch', region_id: r.region_id, name: r.name_en, reason: 'asked in chat' }); }
       return { stopped: was };
@@ -618,7 +626,8 @@ const server = http.createServer(async (req, res) => {
     if (p.startsWith('/api/watches/') && req.method === 'DELETE') {
       const id = decodeURIComponent(p.split('/').pop());
       const w = watches.get(id);
-      if (w) { watches.delete(id); log('watch', `Watch stopped on ${w.name}.`, { region_id: id }); }
+      stopped.add(id);
+      if (w) { watches.delete(id); log('watch', `Watch stopped on ${w.name}. The agent will not restart it on its own.`, { region_id: id }); }
       return send(res, 200, { ok: true });
     }
     if (p === '/api/log') return send(res, 200, logs);
