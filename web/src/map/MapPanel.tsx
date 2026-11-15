@@ -42,12 +42,12 @@ function RegionList({ data }: { data: Dataset }) {
   );
 }
 
-export function MapPanel({ data }: { data: Dataset }) {
+export function MapPanel({ data, inset = 0 }: { data: Dataset; inset?: number }) {
   const set = useApp((s) => s.set);
   const [noGl, setNoGl] = useState(false);
   return (
     <div className="map-panel">
-      {noGl ? <RegionList data={data} /> : <Globe data={data} mode="app" onPick={(id) => set({ regionId: id })} onUnsupported={() => setNoGl(true)} />}
+      {noGl ? <RegionList data={data} /> : <Globe data={data} mode="app" inset={inset} onPick={(id) => set({ regionId: id })} onUnsupported={() => setNoGl(true)} />}
     </div>
   );
 }

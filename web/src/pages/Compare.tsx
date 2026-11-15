@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Area, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useT } from '../i18n';
 import { useApp } from '../store';
@@ -7,11 +7,10 @@ import { availableYears } from '../lib/stats';
 import { yearStats, type YearStats } from '../lib/season';
 import { doyLabel, signed, signedPct, versus } from '../lib/format';
 import { LevelBadge } from '../components/Level';
-import { CleaningTable } from '../components/CleaningTable';
 
-const COL_A = '#0B3D91', COL_B = '#B8400E';
+const COL_A = 'var(--cmp-a)', COL_B = 'var(--cmp-b)';
 const MONTH_START = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335];
-const TIP = { borderRadius: 4, border: '1px solid #C9CED6', background: '#FFFFFF', color: '#0B0D12', fontSize: 13, boxShadow: '0 6px 20px rgba(11,13,18,.08)' };
+const TIP = { borderRadius: 4, border: '1px solid var(--line-2)', background: 'var(--surface)', color: 'var(--ink)', fontSize: 13, boxShadow: '0 6px 20px rgba(11,13,18,.12)' };
 
 const pctChange = (a: number, b: number) => (a > 0 ? signedPct(Math.round((100 * (b - a)) / a)) : '—');
 const tone = (d: number | null) => (d === null || d === 0 ? '' : d > 0 ? 'is-up' : 'is-down');
@@ -46,7 +45,6 @@ export function Compare({ data }: { data: Dataset }) {
   );
 
   if (!region || !A || !B) return <main className="home" id="main"><p className="state">{tt.t('bulletin.noData')}</p></main>;
-  const cleaning = data.meta.cleaning?.[SENSOR]?.[region.country];
   const name = regionName(region);
 
   const row = (label: string, va: string, vb: string, change: string, d: number | null = null, note?: string) => (
@@ -63,33 +61,69 @@ export function Compare({ data }: { data: Dataset }) {
   const diff = (x: number | null, y: number | null) => (x === null || y === null ? null : y - x);
   const dHalf = diff(A.halfDoy, B.halfDoy), dT = diff(A.tAnom, B.tAnom), dR = diff(A.rainAnom, B.rainAnom), dF = diff(A.forestShare, B.forestShare);
 
+  // Print: charts are first laid out at page width, then the browser's print dialog opens.
+  const [printing, setPrinting] = useState(false);
+  useEffect(() => {
+    if (!printing) return;
+    const t = setTimeout(() => { window.print(); setPrinting(false); }, 350);
+    return () => clearTimeout(t);
+  }, [printing]);
+
+  const download = () => {
+    const head = `month,detections_${a},level_${a},detections_${b},level_${b},change_pct,usual_median`;
+    const lines = monthly.map((m, i) => {
+      const ma = A.months[i], mb = B.months[i];
+      const ch = ma && mb && ma.n > 0 ? Math.round((100 * (mb.n - ma.n)) / ma.n) : '';
+      return [m.month, ma?.n ?? '', ma?.level ?? '', mb?.n ?? '', mb?.level ?? '', ch, m.usual ?? ''].join(',');
+    });
+    const blob = new Blob([[head, ...lines].join('\n')], { type: 'text/csv;charset=utf-8' });
+    const el = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `niran_${region.region_id}_${SENSOR}_${a}_vs_${b}.csv` });
+    el.click();
+    setTimeout(() => URL.revokeObjectURL(el.href), 1000);
+  };
+
   return (
-    <main className="home compare" id="main">
+    <main className={`home compare ${printing ? 'is-printing' : ''}`} id="main">
+      <p className="print-head mono">
+        <b>NIRAN</b> · {tt.t('compare.report')} · {name} · {a} {tt.t('compare.vs')} {b} · {tt.t('footer.source', { sensor: SENSOR })} · {tt.date(new Date().toISOString().slice(0, 10))}
+      </p>
       <header className="page-head">
         <div>
           <h1>{tt.t('compare.title')}</h1>
           <p className="lead">{tt.t('compare.lead')}</p>
         </div>
-        <div className="period cmp-pick">
-          <label className="period-field">
-            <span className="sr-only">{tt.t('home.colCountry')}</span>
-            <select value={region.region_id} onChange={(e) => set({ regionId: e.target.value })}>
-              {data.regions.map((r) => <option key={r.region_id} value={r.region_id}>{regionName(r)}</option>)}
-            </select>
-          </label>
-          <label className="period-field cmp-a">
-            <span className="sr-only">{tt.t('compare.yearA')}</span>
-            <select value={a} onChange={(e) => set({ year: Number(e.target.value) })}>
-              {years.filter((y) => y !== b).map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </label>
-          <span className="cmp-vs mono">{tt.t('compare.vs')}</span>
-          <label className="period-field cmp-b">
-            <span className="sr-only">{tt.t('compare.yearB')}</span>
-            <select value={b} onChange={(e) => set({ yearB: Number(e.target.value) })}>
-              {years.filter((y) => y !== a).map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </label>
+        <div className="cmp-side">
+          <div className="period cmp-pick">
+            <label className="period-field">
+              <span className="sr-only">{tt.t('home.colCountry')}</span>
+              <select value={region.region_id} onChange={(e) => set({ regionId: e.target.value })}>
+                {data.regions.map((r) => <option key={r.region_id} value={r.region_id}>{regionName(r)}</option>)}
+              </select>
+            </label>
+            <label className="period-field cmp-a">
+              <span className="sr-only">{tt.t('compare.yearA')}</span>
+              <select value={a} onChange={(e) => set({ year: Number(e.target.value) })}>
+                {years.filter((y) => y !== b).map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </label>
+            <span className="cmp-vs mono">{tt.t('compare.vs')}</span>
+            <label className="period-field cmp-b">
+              <span className="sr-only">{tt.t('compare.yearB')}</span>
+              <select value={b} onChange={(e) => set({ yearB: Number(e.target.value) })}>
+                {years.filter((y) => y !== a).map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="cmp-actions">
+            <button className="text-btn" onClick={() => setPrinting(true)}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 9V4h10v5M7 17H4v-7h16v7h-3M7 14h10v6H7z" /></svg>
+              {tt.t('compare.print')}
+            </button>
+            <button className="text-btn" onClick={download}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
+              {tt.t('footer.csv')}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -119,7 +153,7 @@ export function Compare({ data }: { data: Dataset }) {
         </div>
       </dl>
 
-      <div className="cmp-grid" data-tour="compare">
+      <div className="cmp-grid">
         <section>
           <header className="sec-head"><h2>{tt.t('compare.figures')}</h2><span className="mono">{name}</span></header>
           <div className="table-wrap">
@@ -133,10 +167,7 @@ export function Compare({ data }: { data: Dataset }) {
                 </tr>
               </thead>
               <tbody>
-                {row(tt.t('compare.mTotal'), tt.num(A.total), tt.num(B.total), pctChange(A.total, B.total), B.total - A.total)}
-                {row(tt.t('compare.mVsUsual'), vsUsual(A), vsUsual(B), '')}
                 {row(tt.t('compare.mPeak'), peak(A), peak(B), A.peak && B.peak ? pctChange(A.peak.n, B.peak.n) : '—', A.peak && B.peak ? B.peak.n - A.peak.n : null)}
-                {row(tt.t('compare.mAbove'), String(A.above), String(B.above), signed(B.above - A.above), B.above - A.above)}
                 {row(tt.t('compare.mHalf'), A.halfDoy ? doyLabel(A.halfDoy) : '—', B.halfDoy ? doyLabel(B.halfDoy) : '—', dHalf === null ? '—' : tt.tp('compare.days', Math.abs(dHalf), { n: signed(dHalf) }), null, tt.t('compare.mHalfNote'))}
                 {row(tt.t('compare.mTemp'), fx(A.tAnom, 1, ' °C'), fx(B.tAnom, 1, ' °C'), dT === null ? '—' : `${signed(dT, 1)} °C`, dT, tt.t('compare.mTempNote'))}
                 {row(tt.t('compare.mRain'), fx(A.rainAnom, 0, '%'), fx(B.rainAnom, 0, '%'), dR === null ? '—' : `${signed(dR)} ${tt.t('compare.pts')}`, null, tt.t('compare.mRainNote'))}
@@ -160,7 +191,7 @@ export function Compare({ data }: { data: Dataset }) {
                       formatter={(value: number | [number, number], key: string) =>
                         key === 'band' && Array.isArray(value) ? [`${tt.num(value[0])} – ${tt.num(value[1])}`, tt.t('season.band')] : [tt.num(value as number), key === 'a' ? String(a) : String(b)]}
                       labelFormatter={(d: number) => doyLabel(d)}
-                      contentStyle={TIP} itemStyle={{ color: '#0B0D12' }} labelStyle={{ color: '#5B6472' }}
+                      contentStyle={TIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--muted)' }}
                     />
                     <Area dataKey="band" stroke="none" fill="var(--band)" isAnimationActive={false} />
                     <Line dataKey="a" stroke={COL_A} strokeWidth={2} dot={false} isAnimationActive={false} />
@@ -189,7 +220,7 @@ export function Compare({ data }: { data: Dataset }) {
               <Tooltip
                 formatter={(value: number, key: string) => [tt.num(value), key === 'a' ? String(a) : key === 'b' ? String(b) : tt.t('home.colUsual')]}
                 labelFormatter={(m: number) => tt.monthName(m)}
-                cursor={{ fill: 'rgba(11,13,18,0.04)' }} contentStyle={TIP} itemStyle={{ color: '#0B0D12' }} labelStyle={{ color: '#5B6472' }}
+                cursor={{ fill: 'var(--hover)' }} contentStyle={TIP} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--muted)' }}
               />
               <Bar dataKey="a" fill={COL_A} radius={2} isAnimationActive={false} />
               <Bar dataKey="b" fill={COL_B} radius={2} isAnimationActive={false} />
@@ -230,15 +261,6 @@ export function Compare({ data }: { data: Dataset }) {
         </div>
         <p className="kpi-note">{tt.t('compare.usualNote')}</p>
       </section>
-
-      {cleaning && (
-        <section className="cmp-clean">
-          <header className="sec-head"><h2>{tt.t('compare.cleaning')}</h2><span className="mono">{cleaning.file}</span></header>
-          <CleaningTable steps={cleaning.steps} className="data" />
-          <p className="kpi-note">{tt.t('compare.cleaningNote')}</p>
-          <button className="btn" onClick={() => set({ page: 'method' })}>{tt.t('home.ctaMethod')}</button>
-        </section>
-      )}
     </main>
   );
 }

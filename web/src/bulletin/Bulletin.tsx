@@ -9,7 +9,7 @@ import { Verdict } from './Verdict';
 import { SeasonChart } from './SeasonChart';
 import { HistoryBars } from './HistoryBars';
 import { Conditions } from './Conditions';
-import { Safety } from './Safety';
+import { NowCard, SeasonCard, TodoCard } from './Safety';
 
 const Chevron = ({ right }: { right: boolean }) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -52,6 +52,23 @@ export function PeriodPicker({ years }: { years: number[] }) {
   );
 }
 
+/** Country picker, set just above the period picker: switch country without going back to the globe. */
+export function RegionPicker({ data }: { data: Dataset }) {
+  const regionId = useApp((s) => s.regionId);
+  const set = useApp((s) => s.set);
+  const regions = [...data.regions].sort((a, b) => regionName(a).localeCompare(regionName(b)));
+  return (
+    <label className="period region-pick">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></svg>
+      <span className="sr-only">Country</span>
+      <select value={regionId ?? 'all'} onChange={(e) => set({ regionId: e.target.value === 'all' ? null : e.target.value })}>
+        <option value="all">All countries</option>
+        {regions.map((r) => <option key={r.region_id} value={r.region_id}>{regionName(r)}</option>)}
+      </select>
+    </label>
+  );
+}
+
 function toCsv(data: Dataset, regionId: string) {
   const rows = (data.meta.sensors ?? ['MODIS']).flatMap((s) => data.bySeries.get(`${regionId}|${s}`) ?? []);
   const name = regionName(data.regionById.get(regionId)).replace(/"/g, '""');
@@ -75,7 +92,7 @@ function Actions({ data, regionId }: { data: Dataset; regionId: string }) {
   };
   const download = () => {
     const blob = new Blob([toCsv(data, regionId)], { type: 'text/csv;charset=utf-8' });
-    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `niran_${regionId}_MODIS.csv` });
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `niran_${regionId}.csv` });
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
@@ -91,9 +108,7 @@ function Actions({ data, regionId }: { data: Dataset; regionId: string }) {
           {tt.t('footer.csv')}
         </button>
       </div>
-      <p className="source mono">
-        {tt.t('footer.source', { sensor })}{data.meta.data_until && <> · {tt.t('footer.until', { date: tt.date(data.meta.data_until) })}</>}
-      </p>
+      <p className="source mono">{tt.t('footer.source', { sensor })}</p>
     </footer>
   );
 }
@@ -114,9 +129,20 @@ function Overview({ data, years }: { data: Dataset; years: number[] }) {
           <p className="eyebrow">{tt.t('bulletin.title')}</p>
           <h2 className="panel-title">{tt.t('bulletin.overview')}</h2>
         </div>
-        <PeriodPicker years={years} />
+        <div className="pickers">
+          <RegionPicker data={data} />
+          <PeriodPicker years={years} />
+        </div>
       </header>
-      <p className="muted pad">{tt.t('bulletin.pickRegion')}</p>
+      <div className="panel-cards">
+      <section className="block">
+      <header className="block-head"><h3>{tt.t('bulletin.pickYear')}</h3></header>
+      <div className="year-chips" role="group" aria-label={tt.t('bulletin.year')}>
+        {years.map((y) => <button key={y} className={y === year ? 'is-on' : ''} aria-pressed={y === year} onClick={() => set({ year: y })}>{y}</button>)}
+      </div>
+      </section>
+      <section className="block">
+      <header className="block-head"><h3>{tt.t('bulletin.pickRegion')}</h3><span className="block-src mono">{tt.period(year, month)}</span></header>
       <ul className="ov">
         {rows.map(({ r, v }) => (
           <li key={r.region_id}>
@@ -129,6 +155,8 @@ function Overview({ data, years }: { data: Dataset; years: number[] }) {
           </li>
         ))}
       </ul>
+      </section>
+      </div>
     </article>
   );
 }
@@ -152,20 +180,27 @@ export function Bulletin({ data }: { data: Dataset }) {
           <p className="eyebrow">{tt.t('bulletin.title')}</p>
           <h2 className="panel-title" id="panel-title">{regionName(region)}</h2>
         </div>
-        <PeriodPicker years={years} />
+        <div className="pickers">
+          <RegionPicker data={data} />
+          <PeriodPicker years={years} />
+        </div>
       </header>
+      <div className="panel-cards" key={region.region_id}>
       {verdict ? (
         <>
           <Verdict v={verdict} year={year} month={month} />
-          <Safety data={data} regionId={region.region_id} />
+          <NowCard data={data} regionId={region.region_id} />
+          <TodoCard data={data} regionId={region.region_id} />
+          <SeasonCard data={data} regionId={region.region_id} />
+          <Conditions data={data} regionId={region.region_id} ctx={ctx} month={month} />
           <SeasonChart cum={data.cumulative[sensor]?.[region.region_id]} year={year} month={month} level={verdict.level} />
           <HistoryBars series={series} year={year} month={month} median={verdict.median} />
-          <Conditions ctx={ctx} month={month} />
         </>
       ) : (
         <section className="block"><p>{tt.t('bulletin.noData')}</p></section>
       )}
       <Actions data={data} regionId={region.region_id} />
+      </div>
     </article>
   );
 }

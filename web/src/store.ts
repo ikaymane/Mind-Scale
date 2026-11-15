@@ -7,7 +7,7 @@ import { create } from 'zustand';
 export type Sensor = 'MODIS' | 'VIIRS';
 export type Mode = 'history' | 'anomaly' | 'live';
 export type Lang = 'en';
-export type Page = 'home' | 'app' | 'compare' | 'method';
+export type Page = 'home' | 'app' | 'compare' | 'method' | 'dispatch';
 
 export interface AppState {
   /** null = whole-globe view */
@@ -25,7 +25,8 @@ export interface AppState {
 }
 
 const DEFAULTS = {
-  regionId: 'MAR' as string | null,
+  /** the globe page opens on the whole globe; a country is then picked there */
+  regionId: null as string | null,
   year: 2022,
   month: 7 as number | null,
   yearB: 2023,
@@ -52,7 +53,7 @@ function fromUrl() {
     sensor: oneOf(q.get('sensor'), ['MODIS', 'VIIRS'] as const, DEFAULTS.sensor),
     mode: oneOf(q.get('mode'), ['history', 'anomaly', 'live'] as const, DEFAULTS.mode),
     lang: 'en' as Lang,
-    page: oneOf(q.get('page'), ['home', 'app', 'compare', 'method'] as const, DEFAULTS.page),
+    page: oneOf(q.get('page'), ['home', 'app', 'compare', 'method', 'dispatch'] as const, DEFAULTS.page),
   };
 }
 

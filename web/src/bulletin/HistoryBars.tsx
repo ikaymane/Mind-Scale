@@ -13,7 +13,7 @@ export function HistoryBars({ series, year, month, median }: { series: YearPoint
   const compact = new Intl.NumberFormat(tt.locale, { notation: 'compact', maximumFractionDigits: 1 });
 
   return (
-    <section className="block" data-tour="history">
+    <section className="block">
       <header className="block-head">
         <h3>{month === null ? tt.t('history.titleYear') : tt.t('history.title', { ofMonth: tt.ofMonth(month) })}</h3>
         <span className="block-src mono">{first}–{last}</span>
@@ -28,7 +28,7 @@ export function HistoryBars({ series, year, month, median }: { series: YearPoint
               cursor={{ fill: 'var(--hover)' }}
               formatter={(v: number, _k, item) => [`${tt.tp('sentence.detections', v, { n: tt.num(v) })} · ${tt.t(`level.${(item.payload as YearPoint).level}`)}`, '']}
               separator=""
-              contentStyle={{ borderRadius: 4, border: '1px solid #C9CED6', background: '#FFFFFF', color: '#0B0D12', fontSize: 13, boxShadow: '0 6px 20px rgba(11,13,18,.08)' }} itemStyle={{ color: '#0B0D12' }} labelStyle={{ color: '#5B6472' }}
+              contentStyle={{ borderRadius: 4, border: '1px solid var(--line-2)', background: 'var(--surface)', color: 'var(--ink)', fontSize: 13, boxShadow: '0 6px 20px rgba(11,13,18,.12)' }} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--muted)' }}
             />
             <ReferenceLine y={median} stroke="var(--ink)" strokeDasharray="4 4" label={{ value: tt.t('history.normal'), position: 'insideTopRight', fontSize: 12, fill: 'var(--ink-2)' }} />
             <Bar dataKey="n" radius={[2, 2, 0, 0]} isAnimationActive={false} style={{ cursor: 'pointer' }}>
@@ -37,8 +37,8 @@ export function HistoryBars({ series, year, month, median }: { series: YearPoint
                   key={p.year}
                   fill={LEVEL_STYLE[p.level].fill}
                   fillOpacity={p.year === year ? 1 : 0.45}
-                  stroke={p.year === year ? '#0B0D12' : 'none'}
-                  strokeWidth={2}
+                  stroke={p.year === year ? 'var(--ink)' : 'var(--edge)'}
+                  strokeWidth={p.year === year ? 2 : 1}
                 />
               ))}
             </Bar>

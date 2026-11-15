@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { useT } from '../i18n';
-import type { ContextRow } from '../lib/data';
+import { useSensor, type ContextRow, type Dataset } from '../lib/data';
+import { driversOf } from '../lib/season';
 
 const COVER = [
   { key: 'forest', color: '#1F8A54' },
@@ -8,61 +10,64 @@ const COVER = [
   { key: 'other', color: '#9AA3B2' },
 ] as const;
 
-/** Diverging bar: centre = usual, left = below, right = above. */
-function Diverge({ value, max, hot }: { value: number; max: number; hot: boolean }) {
-  const w = Math.min(50, (Math.abs(value) / max) * 50);
+type Ctx = ContextRow & { t2m?: number; precip_mm_day?: number };
+
+function Tile({ label, value, note, tone }: { label: string; value: string; note?: string; tone?: 'hot' | 'cool' | '' }) {
   return (
-    <span className="div-bar" aria-hidden="true">
-      <span className="div-mid" />
-      <span className={`div-fill ${hot ? 'is-hot' : 'is-cool'}`} style={value >= 0 ? { left: '50%', width: `${w}%` } : { right: '50%', width: `${w}%` }} />
-    </span>
+    <div className="tile">
+      <dt>{label}</dt>
+      <dd>
+        <span className={`tile-value mono ${tone ? `is-${tone}` : ''}`}>{value}</span>
+        {note && <span className="tile-note">{note}</span>}
+      </dd>
+    </div>
   );
 }
 
-/** Block 4 — conditions on the ground: NASA POWER weather + MODIS land cover of the detections. */
-export function Conditions({ ctx, month }: { ctx: ContextRow | undefined; month: number | null }) {
+/** Card — conditions on the ground: NASA POWER weather of the month + MODIS land cover of the detections. */
+export function Conditions({ data, regionId, ctx, month }: { data: Dataset; regionId: string; ctx: ContextRow | undefined; month: number | null }) {
   const tt = useT();
+  const SENSOR = useSensor(data);
+  const drivers = useMemo(() => driversOf(data, regionId, SENSOR), [data, regionId, SENSOR]);
   const head = (
     <header className="block-head">
       <h3>{tt.t('why.title')}</h3>
       <span className="block-src mono">{tt.t('why.source')}</span>
     </header>
   );
-  if (month === null) return <section className="block">{head}<p className="muted">{tt.t('why.yearNote')}</p></section>;
-  if (!ctx || ctx.t2m_anom == null) return <section className="block">{head}<p className="muted">{tt.t('why.unavailable')}</p></section>;
+  const record = drivers && drivers.months > 0 && (
+    <ul className="plain tight">
+      <li>{tt.t('safety.driversHot', { a: drivers.hotter, n: drivers.months, b: drivers.allHotter, m: drivers.allMonths })}</li>
+      {drivers.rainKnown > 0 && <li>{tt.t('safety.driversDry', { a: drivers.drier, n: drivers.rainKnown, b: drivers.allDrier, m: drivers.allRainKnown })}</li>}
+    </ul>
+  );
+  if (month === null) return <section className="block">{head}<p className="muted">{tt.t('why.yearNote')}</p>{record}</section>;
+  if (!ctx || ctx.t2m_anom == null) return <section className="block">{head}<p className="muted">{tt.t('why.unavailable')}</p>{record}</section>;
 
   const sign = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 1, signDisplay: 'exceptZero' });
-  const p = ctx.precip_anom_pct;
-  const lc = ctx.landcover;
-  const extra = ctx as ContextRow & { t2m?: number; precip_mm_day?: number };
+  const c = ctx as Ctx;
+  const p = c.precip_anom_pct;
+  const lc = c.landcover;
 
   return (
     <section className="block">
       {head}
-      <div className="readouts">
-        <div className="readout">
-          <span className="readout-name">{tt.t('why.temp')}</span>
-          <span className={`readout-value mono ${ctx.t2m_anom >= 0.5 ? 'is-hot' : ctx.t2m_anom <= -0.5 ? 'is-cool' : ''}`}>{sign.format(ctx.t2m_anom)} °C</span>
-          <Diverge value={ctx.t2m_anom} max={4} hot={ctx.t2m_anom >= 0} />
-          <span className="readout-note">{tt.t('why.tempVs')}{extra.t2m != null && <> · <span className="mono">{extra.t2m.toFixed(1)} °C</span></>}</span>
-        </div>
-        <div className="readout">
-          <span className="readout-name">{tt.t('why.rain')}</span>
-          {p == null ? (
-            <>
-              <span className="readout-value mono">{extra.precip_mm_day != null ? `${extra.precip_mm_day.toFixed(1)} mm/day` : '—'}</span>
-              <span className="div-bar is-empty" aria-hidden="true"><span className="div-mid" /></span>
-              <span className="readout-note">{tt.t('why.rainDry')}</span>
-            </>
-          ) : (
-            <>
-              <span className={`readout-value mono ${p <= -20 ? 'is-hot' : p >= 20 ? 'is-cool' : ''}`}>{sign.format(p)}%</span>
-              <Diverge value={p} max={100} hot={p < 0} />
-              <span className="readout-note">{Math.abs(p) < 10 ? tt.t('why.rainNear') : p < 0 ? tt.t('why.rainLess') : tt.t('why.rainMore')}</span>
-            </>
-          )}
-        </div>
-      </div>
+      <dl className="tiles">
+        <Tile
+          label={tt.t('why.temp')}
+          value={`${sign.format(c.t2m_anom!)} °C`}
+          tone={c.t2m_anom! >= 0.5 ? 'hot' : c.t2m_anom! <= -0.5 ? 'cool' : ''}
+          note={c.t2m != null ? `${c.t2m.toFixed(1)} °C · ${tt.t('why.tempVs')}` : tt.t('why.tempVs')}
+        />
+        <Tile
+          label={tt.t('why.rain')}
+          value={p == null ? (c.precip_mm_day != null ? `${c.precip_mm_day.toFixed(1)} mm` : '—') : `${sign.format(p)}%`}
+          tone={p == null ? '' : p <= -20 ? 'hot' : p >= 20 ? 'cool' : ''}
+          note={p == null ? tt.t('why.rainDry') : Math.abs(p) < 10 ? tt.t('why.rainNear') : p < 0 ? tt.t('why.rainLess') : tt.t('why.rainMore')}
+        />
+        {c.rh_mean != null && <Tile label={tt.t('why.humidity')} value={`${Math.round(c.rh_mean)}%`} note={tt.t('why.monthMean')} />}
+        {c.wind_mean != null && <Tile label={tt.t('why.wind')} value={`${c.wind_mean.toFixed(1)} m/s`} note={tt.t('why.monthMean')} />}
+      </dl>
 
       {lc && (
         <div className="fuel">
@@ -77,6 +82,7 @@ export function Conditions({ ctx, month }: { ctx: ContextRow | undefined; month:
           </ul>
         </div>
       )}
+      {record}
       <p className="footnote">{tt.t('why.measuredAt')}</p>
     </section>
   );

@@ -20,3 +20,6 @@ pipeline/cache/
 # Secrets
 .env
 .env.*
+
+# keep the template, never the real .env
+!.env.example

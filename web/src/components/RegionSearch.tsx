@@ -6,7 +6,7 @@ import { regionName, type Region } from '../lib/data';
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ًͯ-ٟ]/g, '').toLowerCase().replace(/[-'’\s]+/g, ' ').trim();
 
 /** Combobox accessible : cherche dans les noms FR / AR / EN. */
-export function RegionSearch({ regions, big = false, onPicked }: { regions: Region[]; big?: boolean; onPicked?: () => void }) {
+export function RegionSearch({ regions, big = false, autoFocus = false, onPicked }: { regions: Region[]; big?: boolean; autoFocus?: boolean; onPicked?: () => void }) {
   const { t, lang } = useT();
   const set = useApp((s) => s.set);
   const [q, setQ] = useState('');
@@ -45,6 +45,7 @@ export function RegionSearch({ regions, big = false, onPicked }: { regions: Regi
         aria-autocomplete="list"
         aria-activedescendant={open && results[active] ? `${listId}-${results[active].region_id}` : undefined}
         autoComplete="off"
+        autoFocus={autoFocus}
         placeholder={t('search.placeholder')}
         value={q}
         onChange={(e) => { setQ(e.target.value); setOpen(true); setActive(0); }}
@@ -54,7 +55,7 @@ export function RegionSearch({ regions, big = false, onPicked }: { regions: Regi
           if (e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); setActive((a) => Math.min(a + 1, results.length - 1)); }
           else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
           else if (e.key === 'Enter' && results[active]) { e.preventDefault(); pick(results[active]); }
-          else if (e.key === 'Escape') setOpen(false);
+          else if (e.key === 'Escape' && !autoFocus) setOpen(false);
         }}
       />
       {open && (

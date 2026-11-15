@@ -1,0 +1,7 @@
+**/node_modules
+web/dist
+pipeline/cache
+pipeline/__pycache__
+graphify-out
+.env
+*.zip

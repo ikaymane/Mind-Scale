@@ -17,8 +17,10 @@ function webglOk() {
 const Play = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" /></svg>;
 const Pause = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4h4v16H6zM14 4h4v16h-4z" /></svg>;
 
-export function Globe({ data, mode, onPick, onUnsupported }: {
+export function Globe({ data, mode, onPick, onUnsupported, inset = 0 }: {
   data: Dataset; mode: 'app' | 'home'; onPick: (id: string) => void; onUnsupported?: () => void;
+  /** pixels of the right edge covered by a floating panel */
+  inset?: number;
 }) {
   const tt = useT();
   const { regionId, year, month } = useApp();
@@ -84,6 +86,7 @@ export function Globe({ data, mode, onPick, onUnsupported }: {
   useEffect(() => { if (ready && mode === 'app') scene?.focus(regionId); }, [scene, ready, regionId, mode]);
   useEffect(() => { if (scene && now) scene.setRecent(now.points, showLive); }, [scene, now]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { scene?.setEventsVisible(showLive); }, [scene, showLive]);
+  useEffect(() => { scene?.setInset(inset); }, [scene, inset]);
 
   const focused = mode === 'app' && !!regionId;
   const canReplay = focused && month !== null && ready;
@@ -140,7 +143,7 @@ export function Globe({ data, mode, onPick, onUnsupported }: {
 
       <div className="globe-bottom">
         {canReplay && (
-          <div className={`replay ${replay ? 'is-open' : ''}`} data-tour="replay">
+          <div className={`replay ${replay ? 'is-open' : ''}`}>
             <button
               className="replay-btn"
               onClick={() => (replay?.playing ? scene?.pauseReplay() : scene?.startReplay(days))}
@@ -169,6 +172,7 @@ export function Globe({ data, mode, onPick, onUnsupported }: {
 
         <div className="globe-foot">
           <span className="key"><span className="key-fire" />{tt.t('globe.legendFire')}</span>
+          {focused && <span className="key"><span className="key-outline" />{tt.t('globe.outline')}</span>}
           {zoomed && <>
             <span className="key"><span className="key-sw key-forest" />{tt.t('globe.forest')}</span>
             <span className="key"><span className="key-sw key-shrub" />{tt.t('globe.shrub')}</span>
@@ -179,7 +183,7 @@ export function Globe({ data, mode, onPick, onUnsupported }: {
         </div>
       </div>
 
-      {!ready && <div className="globe-loading"><span className="spinner" aria-hidden="true" /></div>}
+      {!ready && <div className="globe-loading" role="status" aria-label={tt.t('common.loading')}><span className="sk sk-globe" aria-hidden="true" /></div>}
     </div>
   );
 }

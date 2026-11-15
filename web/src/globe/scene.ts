@@ -9,6 +9,9 @@
  * - Live: open wildfires from NASA EONET.
  */
 import * as THREE from 'three';
+import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 
 const D2R = Math.PI / 180;
 const GIBS_BASE = 'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&SRS=EPSG:4326&STYLES=';
@@ -85,6 +88,8 @@ export class GlobeScene {
   private pinch0 = 0;
   private infoTick = 0;
   private aspectK = 1;
+  private inset = 0;
+  private outline?: { group: THREE.Group; mats: LineMaterial[] };
   private recent?: THREE.Points;
   private replay: { day: number; days: number; playing: boolean; lastSent: number } | null = null;
   private ro: ResizeObserver;
@@ -101,7 +106,7 @@ export class GlobeScene {
     const sun = new THREE.DirectionalLight(0xffffff, 2.2);
     sun.position.set(4, 2.5, 5);
     this.scene.add(sun);
-
+    
     // --- Earth ---
     this.scene.add(this.earth);
     const aniso = this.renderer.capabilities.getMaxAnisotropy();
@@ -237,6 +242,7 @@ export class GlobeScene {
   // ---------------------------------------------------------------- data
   setCells(cells: GlobeCells) {
     this.cells = cells;
+    if (this.focused) this.drawOutline(this.focused);
     const n = cells.cells.length;
     const pos = new Float32Array(n * 3);
     this.cellVec = new Float32Array(n * 3);
@@ -392,6 +398,7 @@ export class GlobeScene {
 
   focus(id: string | null) {
     this.focused = id;
+    this.drawOutline(id);
     const focusAttr = this.points?.geometry.getAttribute('aFocus') as THREE.BufferAttribute | undefined;
     const ri = id && this.cells ? this.cells.regions.indexOf(id) : -1;
     if (focusAttr) { for (let i = 0; i < focusAttr.count; i++) focusAttr.setX(i, ri < 0 || this.cellRegion[i] === ri ? 1 : 0); focusAttr.needsUpdate = true; }
@@ -406,6 +413,77 @@ export class GlobeScene {
     this.tPitch = lat * D2R;
     const ext = Math.max(r.bbox[2] - r.bbox[0], r.bbox[3] - r.bbox[1]);
     this.tDist = 1 + Math.min(1.7, Math.max(0.36, ext / 28));
+  }
+
+  /**
+   * Outline of the focused country. The project holds no boundary file, so the line is the edge of the
+   * 0.5° cells where the FIRMS archive has this country's detections (small gaps closed first).
+   */
+  private drawOutline(id: string | null) {
+    if (this.outline) {
+      this.earth.remove(this.outline.group);
+      this.outline.group.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
+      this.outline.mats.forEach((m) => m.dispose());
+      this.outline = undefined;
+    }
+    const ri = id && this.cells ? this.cells.regions.indexOf(id) : -1;
+    if (ri < 0 || !this.cells) return;
+    const step = this.cells.step, W = 4096;
+    const key = (i: number, j: number) => (i + 1024) * W + (j + 2048);
+    let set = new Set<number>();
+    for (const c of this.cells.cells) if (c[2] === ri) set.add(key(Math.floor(c[0] / step), Math.floor(c[1] / step)));
+    const R = 2; // closing radius, in cells
+    const near = (k: number, test: (n: number) => boolean, all: boolean) => {
+      for (let di = -R; di <= R; di++) for (let dj = -R; dj <= R; dj++) { const hit = test(k + di * W + dj); if (hit !== all) return !all; }
+      return all;
+    };
+    const grown = new Set<number>();
+    set.forEach((k) => { for (let di = -R; di <= R; di++) for (let dj = -R; dj <= R; dj++) grown.add(k + di * W + dj); });
+    set = new Set([...grown].filter((k) => near(k, (n) => grown.has(n), true)));
+    // fill the inside (deserts without fires): only cells reachable from outside stay empty
+    let i0 = Infinity, i1 = -Infinity, j0 = Infinity, j1 = -Infinity;
+    set.forEach((k) => { const i = Math.floor(k / W), j = k % W; i0 = Math.min(i0, i); i1 = Math.max(i1, i); j0 = Math.min(j0, j); j1 = Math.max(j1, j); });
+    i0--; i1++; j0--; j1++;
+    const outside = new Set<number>([i0 * W + j0]);
+    const queue = [i0 * W + j0];
+    while (queue.length) {
+      const k = queue.pop()!;
+      for (const n of [k + W, k - W, k + 1, k - 1]) {
+        const i = Math.floor(n / W), j = n % W;
+        if (i < i0 || i > i1 || j < j0 || j > j1 || set.has(n) || outside.has(n)) continue;
+        outside.add(n); queue.push(n);
+      }
+    }
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const k = i * W + j; if (!outside.has(k)) set.add(k); }
+
+    const pos: number[] = [];
+    const seg = (la0: number, lo0: number, la1: number, lo1: number) => {
+      const a = llToVec(la0, lo0, 1.0055), b = llToVec(la1, lo1, 1.0055);
+      pos.push(a.x, a.y, a.z, b.x, b.y, b.z);
+    };
+    set.forEach((k) => {
+      const i = Math.floor(k / W) - 1024, j = (k % W) - 2048;
+      const la0 = i * step, la1 = la0 + step, lo0 = j * step, lo1 = lo0 + step;
+      if (!set.has(k + W)) seg(la1, lo0, la1, lo1);
+      if (!set.has(k - W)) seg(la0, lo0, la0, lo1);
+      if (!set.has(k + 1)) seg(la0, lo1, la1, lo1);
+      if (!set.has(k - 1)) seg(la0, lo0, la1, lo0);
+    });
+    if (!pos.length) return;
+    const group = new THREE.Group();
+    const w = this.host.clientWidth || 1, h = this.host.clientHeight || 1;
+    // dark underlay + bright line: readable on desert and on ocean
+    const mats = [[0x0b1a33, 5, 0.5], [0xffffff, 2, 0.95]].map(([color, linewidth, target]) => {
+      const m = new LineMaterial({ color, linewidth, transparent: true, opacity: 0, depthWrite: false });
+      m.resolution.set(w, h);
+      m.userData.target = target;
+      const line = new LineSegments2(new LineSegmentsGeometry().setPositions(pos), m);
+      line.renderOrder = 3;
+      group.add(line);
+      return m;
+    });
+    this.earth.add(group);
+    this.outline = { group, mats };
   }
 
   /** Sharper NASA GIBS imagery for the focused country only (curved patch over the globe). */
@@ -539,6 +617,13 @@ export class GlobeScene {
     return inBox[0]?.id ?? null;
   }
 
+  /** Pixels covered on the right by an overlay; the globe re-centres in what is left. */
+  setInset(px: number) {
+    if (Math.abs(px - this.inset) < 1) return;
+    this.inset = px;
+    this.resize();
+  }
+
   // ---------------------------------------------------------------- loop
   private resize() {
     const w = this.host.clientWidth, h = this.host.clientHeight;
@@ -546,7 +631,11 @@ export class GlobeScene {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.aspectK = Math.max(1, h / w);
+    // a panel floating over the right edge: slide the globe's centre into the free space
+    if (this.inset > 0 && this.inset < w * 0.7) this.camera.setViewOffset(w, h, this.inset / 2, 0, w, h);
+    else this.camera.clearViewOffset();
     this.camera.updateProjectionMatrix();
+    this.outline?.mats.forEach((m) => m.resolution.set(w, h));
     if (this.pointMat) this.pointMat.uniforms.uProj.value = (h * this.renderer.getPixelRatio()) / (2 * Math.tan((this.camera.fov * D2R) / 2));
   }
 
@@ -569,6 +658,8 @@ export class GlobeScene {
     this.camera.position.set(0, 0, 1 + (this.dist - 1) * k);
     this.camera.lookAt(0, 0, 0);
     this.earth.updateMatrixWorld(true);
+    // outline fades in once the camera is on its way
+    this.outline?.mats.forEach((m) => { m.opacity += ((m.userData.target as number) - m.opacity) * Math.min(1, dt * (rm ? 30 : 1.6)); });
 
     // zoom: fuel layer fades in, satellite beams fade back
     const zoomF = THREE.MathUtils.clamp((2.5 - this.dist) / 0.7, 0, 1);

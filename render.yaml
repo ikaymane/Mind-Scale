@@ -1,0 +1,19 @@
+# Render blueprint: one Docker web service. Set the secrets in the Render dashboard, not here.
+services:
+  - type: web
+    name: niran
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: LLM_BASE_URL
+        value: https://api.deepseek.com
+      - key: LLM_MODEL
+        value: deepseek-chat
+      - key: LLM_API_KEY
+        sync: false
+      - key: ALERT_WEBHOOK_URL
+        sync: false
+      - key: WATCH_INTERVAL_MIN
+        value: "10"

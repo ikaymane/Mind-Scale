@@ -9,7 +9,8 @@
     "bulletin": "Globe",
     "method": "Method",
     "skip": "Skip to bulletin",
-    "compare": "Compare"
+    "compare": "Compare",
+    "dispatch": "Fire service"
   },
   "search": {
     "label": "Search a country",
@@ -66,13 +67,13 @@
   },
   "bulletin": {
     "title": "Fire bulletin",
-    "overview": "All countries",
+    "overview": "Whole globe",
     "year": "Year",
     "month": "Month",
     "allYear": "Whole year",
     "prev": "Previous period",
     "next": "Next period",
-    "pickRegion": "Pick a country on the globe to open its bulletin.",
+    "pickRegion": "Choose a country",
     "noData": "No data for this period.",
     "expand": "Expand the bulletin",
     "collapse": "Collapse the bulletin",
@@ -84,7 +85,9 @@
     "statRatio": "times usual",
     "statBelow": "below usual",
     "statNear": "about usual",
-    "statNone": "usually none"
+    "statNone": "usually none",
+    "statPeriod": "period",
+    "pickYear": "Choose a year"
   },
   "season": {
     "title": "Season to date",
@@ -122,63 +125,10 @@
     },
     "measuredAt": "Weather measured at the 4 busiest fire areas. Observed conditions, not a cause.",
     "unavailable": "No NASA POWER data for this period.",
-    "yearNote": "Pick a month to see that month's weather."
-  },
-  "tour": {
-    "header": "Tour",
-    "headerTitle": "Take the 1-minute guided tour",
-    "heroStart": "Take the 1-minute tour",
-    "offerTitle": "New here?",
-    "offerBody": "A 1-minute guided tour shows how to read NIRAN, step by step.",
-    "offerStart": "Start the tour",
-    "offerLater": "No thanks",
-    "count": "Step {i} of {n}",
-    "next": "Next",
-    "back": "Back",
-    "skip": "Skip tour",
-    "finish": "Finish",
-    "steps": [
-      {
-        "title": "Welcome to NIRAN",
-        "body": "NIRAN answers one question for Morocco, Australia and Brazil: is this month's fire activity normal? It compares NASA satellite fire detections with the same month in other years. This tour takes about a minute."
-      },
-      {
-        "title": "The month at a glance",
-        "body": "Four numbers sum up the chosen month: total fire detections, how far that is from usual, how many countries are above their usual range, and the biggest outlier."
-      },
-      {
-        "title": "One line per country",
-        "body": "Each country gets a level from Low to Extreme. The 12 small squares are the 12 months of the year, coloured by level. Click any row to open that country's bulletin."
-      },
-      {
-        "title": "The bulletin",
-        "body": "This is Australia in December 2023. The word, the colour and the percentage give the verdict at a glance, and one plain sentence explains it."
-      },
-      {
-        "title": "Against the other years",
-        "body": "Each bar is the same month in another year. The highlighted bar is the month you picked, so you can see straight away whether it stands out."
-      },
-      {
-        "title": "Fire safety, right now",
-        "body": "Live NASA detections from the last 7 days, when this country's fire season runs, and simple steps people can take to stay safe."
-      },
-      {
-        "title": "Watch the month burn",
-        "body": "Press Replay to play the month day by day on the globe. Each ring marks the first day a fire showed up in that area."
-      },
-      {
-        "title": "Two satellite sensors",
-        "body": "Switch between MODIS (1 km pixels, Terra and Aqua) and VIIRS (375 m pixels, Suomi NPP and NOAA-20). VIIRS sees smaller fires. Each sensor is only compared with itself."
-      },
-      {
-        "title": "Compare two years",
-        "body": "Pick a country and two years to see totals, timing, the busiest months and the weather side by side."
-      },
-      {
-        "title": "Every number is traceable",
-        "body": "The Method page lists the NASA sources, every cleaning step with the rows it removed, and what the data cannot tell you. That's the tour: explore freely, or replay it from Tour at the top."
-      }
-    ]
+    "yearNote": "Pick a month to see that month's weather.",
+    "humidity": "Humidity",
+    "wind": "Wind",
+    "monthMean": "month mean"
   },
   "sensor": {
     "label": "Satellite sensor",
@@ -189,8 +139,7 @@
     "share": "Copy link",
     "copied": "Link copied",
     "csv": "Download CSV",
-    "source": "NASA FIRMS ({sensor})",
-    "until": "data to {date}"
+    "source": "NASA FIRMS ({sensor})"
   },
   "map": {
     "listTitle": "Countries",
@@ -234,38 +183,28 @@
       "one": "{n} live detection, last 7 days · all countries",
       "other": "{n} live detections, last 7 days · all countries"
     },
-    "recentSource": "Live, last 7 days · NASA LANCE"
+    "recentSource": "Live, last 7 days · NASA LANCE",
+    "outline": "Outline: where the archive holds fires"
   },
   "home": {
     "kicker": "NASA Space Apps · Make wildfire data easier to use",
     "title": "Is this fire season normal?",
     "lead": "NIRAN compares each month's satellite fire detections with the same month in other years, then says it in one sentence.",
     "cta": "Open the globe",
-    "pickPeriod": "Pick a month",
-    "step1": "1 · The month you picked",
-    "step2": "2 · Right now",
-    "step3": "3 · On record",
-    "monthTitle": "How {period} compares with other years",
     "ccLine": "{n} detections · usual {usual}",
-    "ccOpen": "Open bulletin",
-    "liveTitle": "This week, live from NASA",
-    "liveUnit": "fires in the last 7 days",
-    "liveUsual": "usual {n} ({vs})",
-    "liveNote": "Fires in the last 7 days (MODIS near-real-time, NASA LANCE). Not linked to the month picked above.",
-    "sumAbove": { "one": "{names} is above its usual level", "other": "{names} are above their usual level" },
-    "sumNormal": { "one": "{names} is within its usual range", "other": "{names} are within their usual range" },
-    "sumBelow": { "one": "{names} is below its usual level", "other": "{names} are below their usual level" },
+    "sumAbove": {
+      "one": "{names} is above its usual level",
+      "other": "{names} are above their usual level"
+    },
+    "sumNormal": {
+      "one": "{names} is within its usual range",
+      "other": "{names} are within their usual range"
+    },
+    "sumBelow": {
+      "one": "{names} is below its usual level",
+      "other": "{names} are below their usual level"
+    },
     "sumNone": "No country is above its usual level",
-    "ctaMethod": "How it works",
-    "examples": "Most unusual months",
-    "howTitle": "Read a bulletin in 10 seconds",
-    "how": [
-      "The word and the colour give the month's verdict.",
-      "The curve shows whether the year left its usual range.",
-      "The bars set this month against the other years."
-    ],
-    "levelsTitle": "Five levels, always spelled out",
-    "status": "FIRMS · {sensor} · to {date}",
     "kpiDetections": "Fire detections",
     "kpiDetectionsSub": "{period} · {n} countries",
     "kpiVs": "Against usual",
@@ -274,37 +213,13 @@
     "kpiAboveValue": "{n} of {total}",
     "kpiAboveSub": "countries at High or more",
     "kpiTop": "Furthest from usual",
-    "kpiLive": "Open wildfires now",
-    "kpiLiveSub": "NASA EONET · worldwide",
-    "usualNote": "Usual level: median of the same period in the other years ({first}–{last}), summed across countries.",
-    "countries": "Countries",
-    "records": "Most unusual months",
     "colCountry": "Country",
     "colLevel": "Level",
-    "colDetections": "Detections",
     "colUsual": "Usual",
-    "colVs": "Vs usual",
-    "colYear": "Jan–Dec {year}",
-    "colPeriod": "Period",
-    "colRank": "No.",
-    "open": "Open {name} bulletin",
-    "archive": "{n} detections analysed, {first}–{last}",
-    "kpiNow": "Fires, last 7 days",
-    "kpiNowSub": "{range} · NASA near-real-time",
-    "now": "Right now",
-    "nowSource": "NASA LANCE",
-    "colLast7": "Last 7 days",
-    "colSeason": "Fire season",
-    "seasonIn": "In season",
-    "seasonOut": {
-      "one": "In {n} month",
-      "other": "In {n} months"
-    },
-    "nowNote": "MODIS near-real-time detections (NASA LANCE, read from GIBS), confidence 30% and above. Usual = median of the same 7 days in the archive years. Provisional: the archive also removes non-vegetation and persistent sites."
+    "open": "Open {name} bulletin"
   },
   "method": {
-    "title": "Method and sources",
-    "intro": "Where NIRAN's numbers come from, what we removed, how a month gets its level, and what the data cannot tell you.",
+    "title": "From orbit to one sentence",
     "sections": [
       {
         "title": "Where the data comes from",
@@ -354,10 +269,10 @@
         ]
       }
     ],
-    "cleaningTitle": "Detections removed at each step",
+    "cleaningTitle": "Detections kept after cleaning",
     "cleaningCols": [
-      "Step",
-      "Remaining",
+      "File",
+      "Kept",
       "Removed"
     ],
     "sourcesTitle": "Sources",
@@ -383,7 +298,41 @@
         "url": "https://eonet.gsfc.nasa.gov"
       }
     ],
-    "thanks": "All data is open NASA data."
+    "thanks": "All data is open NASA data.",
+    "steps": [
+      {
+        "name": "Detect",
+        "line": "NASA satellites flag every hot point on the ground. FIRMS publishes them, MODIS and VIIRS."
+      },
+      {
+        "name": "Clean",
+        "line": "We keep vegetation fires only: no factories, no gas flares, no low-confidence points."
+      },
+      {
+        "name": "Remember",
+        "line": "Each month is set against the same month in the other years. The fire season is built in."
+      },
+      {
+        "name": "Rank",
+        "line": "The further a month sits from its usual level, the higher it ranks."
+      },
+      {
+        "name": "Tell",
+        "line": "One word, one colour, one sentence. That is the bulletin."
+      }
+    ],
+    "frameSift": "From raw file to vegetation fires",
+    "frameRhythm": "When this country burns",
+    "frameLevels": "Every month gets a level",
+    "frameSentence": "What you read",
+    "kept": "Kept",
+    "season": "Fire season",
+    "more": "Read the full method",
+    "play": "Play",
+    "sensor": {
+      "MODIS": "Terra + Aqua · 1 km pixels",
+      "VIIRS": "Suomi NPP + NOAA-20 · 375 m pixels"
+    }
   },
   "cleaning": {
     "raw": "Raw rows",
@@ -444,11 +393,13 @@
     },
     "guideNote": "General wildfire guidance, not NASA data. Your civil protection authority comes first.",
     "guideSource": "Ready.gov: Wildfires",
-    "guideUrl": "https://www.ready.gov/wildfires"
+    "guideUrl": "https://www.ready.gov/wildfires",
+    "nowSource": "NASA LANCE · last 7 days",
+    "playYear": "Play {year}"
   },
   "compare": {
     "title": "Compare two years",
-    "lead": "The same country, two years side by side: totals, timing, weather and what burned, from the cleaned detections.",
+    "lead": "One country, two years: totals, timing, weather and what burned.",
     "yearA": "First year",
     "yearB": "Second year",
     "vs": "vs",
@@ -459,14 +410,11 @@
     "kpiChangeSub": "{n} detections",
     "kpiAbove": "Months above usual",
     "kpiAboveSub": "months at High or more, of 12",
-    "figures": "Key figures",
+    "figures": "Timing and conditions",
     "colMetric": "Measure",
     "colChange": "Change",
     "colMonth": "Month",
-    "mTotal": "Fire detections, whole year",
-    "mVsUsual": "Against a usual year",
     "mPeak": "Busiest month",
-    "mAbove": "Months above usual",
     "mHalf": "Half of the year's fires reached by",
     "mHalfNote": "earlier = earlier season",
     "mTemp": "Air temperature vs usual",
@@ -485,7 +433,18 @@
     "months": "Month by month",
     "monthsAxis": "Fire detections per month in {a} and {b}",
     "usualNote": "Usual = median of the same month in the other years of the record, as computed for the first year shown.",
-    "cleaning": "From raw file to these figures",
-    "cleaningNote": "Cleaning is done once per file, over all its years; every figure on this page uses the last line."
+    "print": "Print report",
+    "report": "Fire report"
+  },
+  "theme": {
+    "toLight": "Switch to light mode",
+    "toDark": "Switch to dark mode"
+  },
+  "panel": {
+    "show": "Bulletin",
+    "hide": "Hide",
+    "widen": "Widen",
+    "narrow": "Narrow",
+    "resize": "Drag to resize the bulletin"
   }
 }

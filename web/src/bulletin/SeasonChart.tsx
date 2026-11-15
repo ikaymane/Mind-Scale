@@ -57,12 +57,12 @@ export function SeasonChart({ cum, year, month, level }: { cum: CumulativeRegion
                 const m = MONTH_START.findLastIndex((s) => s <= d);
                 return `${d - MONTH_START[m] + 1} ${tt.monthName(m + 1)}`;
               }}
-              contentStyle={{ borderRadius: 4, border: '1px solid #C9CED6', background: '#FFFFFF', color: '#0B0D12', fontSize: 13, boxShadow: '0 6px 20px rgba(11,13,18,.08)' }} itemStyle={{ color: '#0B0D12' }} labelStyle={{ color: '#5B6472' }}
+              contentStyle={{ borderRadius: 4, border: '1px solid var(--line-2)', background: 'var(--surface)', color: 'var(--ink)', fontSize: 13, boxShadow: '0 6px 20px rgba(11,13,18,.12)' }} itemStyle={{ color: 'var(--ink)' }} labelStyle={{ color: 'var(--muted)' }}
             />
             <Area dataKey="band" stroke="none" fill="var(--band)" isAnimationActive={false} />
             <Line dataKey="p50" stroke="var(--muted)" strokeDasharray="4 4" strokeWidth={1.5} dot={false} isAnimationActive={false} />
             <Line dataKey="y" stroke="var(--ink)" strokeWidth={2} dot={false} isAnimationActive={false} />
-            <ReferenceDot x={end} y={at.y} r={6} fill={LEVEL_STYLE[level].fill} stroke="#FFFFFF" strokeWidth={2} />
+            <ReferenceDot x={end} y={at.y} r={6} fill={LEVEL_STYLE[level].fill} stroke="var(--surface)" strokeWidth={2} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
