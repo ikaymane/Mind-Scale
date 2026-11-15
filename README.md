@@ -23,7 +23,7 @@ Prebuilt data is committed in `web/public/data/`, so the site runs without the
 raw archives or Python:
 
 ```bash
-cp .env.example .env          # optional: LLM_API_KEY (DeepSeek or any OpenAI-compatible API), ALERT_WEBHOOK_URL
+cp .env.example .env          # optional: LLM_API_KEY (DeepSeek V4 Pro by default, or any OpenAI-compatible API), ALERT_WEBHOOK_URL
 node server/index.mjs         # API on :8787 (live FIRMS feed, agent, alerts)
 cd web && npm ci && npm run dev   # site on :5173, /api proxied to :8787
 # npm run build produces web/dist, which the server also serves

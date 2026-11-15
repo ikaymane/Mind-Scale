@@ -1,16 +1,44 @@
-/** "Ask NIRAN": the agent, docked bottom-right on every page. Answers come from /api/chat (NASA facts only). */
-import { useEffect, useRef, useState } from 'react';
+/**
+ * "Ask NIRAN": the agent, docked bottom-right on every page. It talks with people and uses tools on the server
+ * (live NASA data, the 2020–2025 archive, watches, alerts). The whole conversation is sent each turn.
+ */
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useApp } from '../store';
 import { api, type ChatAction, type ChatMessage } from '../lib/api';
 
-interface Turn extends ChatMessage { actions?: ChatAction[]; engine?: string; error?: boolean }
+interface Turn extends ChatMessage { actions?: ChatAction[]; steps?: string[]; engine?: string; error?: boolean }
 
 const SUGGEST = [
-  'Is Morocco burning right now?',
-  'Was 2022 unusual in Morocco?',
-  'Is Australia above usual this week?',
-  'What should people in Australia do?',
+  'Hi! What can you do?',
+  'I see smoke near my village in Morocco. What should I do?',
+  'Is Australia burning more than usual this week?',
+  'Was 2022 a bad fire year in Morocco? Why?',
 ];
+
+/** **bold** inside a line */
+function inline(text: string): ReactNode[] {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.startsWith('**') && part.endsWith('**') ? <strong key={i}>{part.slice(2, -2)}</strong> : <Fragment key={i}>{part}</Fragment>);
+}
+
+/** Paragraphs, and "- " / "1. " lines as lists: enough for a chat reply, no markdown library. */
+function Rich({ text }: { text: string }) {
+  const blocks = text.replace(/\r/g, '').split(/\n{2,}/);
+  return (
+    <>
+      {blocks.map((b, i) => {
+        const lines = b.split('\n').filter((l) => l.trim());
+        const bullet = lines.length > 0 && lines.every((l) => /^\s*([-*•]|\d+[.)])\s+/.test(l));
+        if (bullet) {
+          const ordered = /^\s*\d/.test(lines[0]);
+          const items = lines.map((l, j) => <li key={j}>{inline(l.replace(/^\s*([-*•]|\d+[.)])\s+/, ''))}</li>);
+          return ordered ? <ol key={i}>{items}</ol> : <ul key={i}>{items}</ul>;
+        }
+        return <p key={i}>{lines.map((l, j) => <Fragment key={j}>{j > 0 && <br />}{inline(l.replace(/^#+\s*/, ''))}</Fragment>)}</p>;
+      })}
+    </>
+  );
+}
 
 export function AgentPanel() {
   const [open, setOpen] = useState(false);
@@ -22,8 +50,8 @@ export function AgentPanel() {
   const end = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => { end.current?.scrollIntoView({ block: 'end' }); }, [turns, busy]);
-  useEffect(() => { if (open) input.current?.focus(); }, [open]);
+  useEffect(() => { end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' }); }, [turns, busy]);
+  useEffect(() => { if (open) input.current?.focus(); }, [open, busy]);
 
   async function ask(q: string) {
     const question = q.trim();
@@ -34,9 +62,9 @@ export function AgentPanel() {
     setBusy(true);
     try {
       const r = await api.chat(next.filter((t) => !t.error).map(({ role, content }) => ({ role, content })), regionId);
-      setTurns([...next, { role: 'assistant', content: r.reply, actions: r.actions, engine: r.engine }]);
+      setTurns([...next, { role: 'assistant', content: r.reply, actions: r.actions, steps: r.steps, engine: r.engine }]);
     } catch {
-      setTurns([...next, { role: 'assistant', content: 'The NIRAN server is not reachable.', error: true }]);
+      setTurns([...next, { role: 'assistant', content: 'I cannot reach the NIRAN server right now. Please try again in a moment.', error: true }]);
     } finally { setBusy(false); }
   }
 
@@ -53,18 +81,21 @@ export function AgentPanel() {
     <section className="agent-panel" role="dialog" aria-label="NIRAN agent">
       <header className="agent-head">
         <div>
-          <strong>NIRAN agent</strong>
-          <span className="footnote">Answers from NASA FIRMS and NASA POWER data only</span>
+          <strong>NIRAN</strong>
+          <span className="footnote">Wildfire-safety agent · NASA satellite data</span>
         </div>
-        <button className="icon-btn" onClick={() => setOpen(false)} aria-label="Close">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
-        </button>
+        <div className="agent-head-tools">
+          {turns.length > 0 && <button className="link-btn agent-new" onClick={() => setTurns([])}>New chat</button>}
+          <button className="icon-btn" onClick={() => setOpen(false)} aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
+        </div>
       </header>
 
       <div className="agent-log" aria-live="polite">
         {turns.length === 0 && (
           <div className="agent-empty">
-            <p>Ask about fires in Morocco, Brazil or Australia: right now, past years, or what to do.</p>
+            <p>Hi, I'm NIRAN. Talk to me about wildfires in Morocco, Brazil or Australia: what is burning now, past seasons, what to do, or ask me to keep watch and alert the fire service.</p>
             <div className="agent-chips">
               {SUGGEST.map((s) => <button key={s} className="agent-chip" onClick={() => ask(s)}>{s}</button>)}
             </div>
@@ -72,26 +103,31 @@ export function AgentPanel() {
         )}
         {turns.map((t, i) => (
           <div key={i} className={`agent-msg agent-${t.role}${t.error ? ' is-error' : ''}`}>
-            <p>{t.content}</p>
-            {t.actions?.map((a) => (
+            {!!t.steps?.length && (
+              <ul className="agent-steps" aria-label="What NIRAN did">
+                {t.steps.map((s, j) => <li key={j}>{s}</li>)}
+              </ul>
+            )}
+            {t.role === 'assistant' ? <Rich text={t.content} /> : <p>{t.content}</p>}
+            {t.actions?.filter((a) => a.type === 'watch').map((a) => (
               <div key={a.region_id} className="agent-action">
                 <span className="live-dot" aria-hidden="true" />
                 <span>
-                  <strong>Live watch started on {a.name}.</strong> {a.reason}. New NASA detections there are checked every few minutes; confirmed fires go to the fire service.{' '}
-                  <button className="link-btn" onClick={() => set({ page: 'dispatch' })}>Open fire-service console</button>
+                  <strong>Live watch on {a.name}.</strong> Confirmed fires go to the fire service.{' '}
+                  <button className="link-btn" onClick={() => set({ page: 'dispatch' })}>Open the fire-service console</button>
                 </span>
               </div>
             ))}
-            {t.engine && <span className="agent-engine mono">{t.engine.startsWith('template') ? 'rule-based answer' : t.engine}</span>}
+            {t.engine?.startsWith('template') && <span className="agent-engine mono">rule-based answer (AI offline)</span>}
           </div>
         ))}
-        {busy && <div className="agent-msg agent-assistant agent-typing" aria-label="Thinking"><span /><span /><span /></div>}
+        {busy && <div className="agent-msg agent-assistant agent-typing" aria-label="NIRAN is thinking"><span /><span /><span /></div>}
         <div ref={end} />
       </div>
 
       <form className="agent-form" onSubmit={(e) => { e.preventDefault(); ask(text); }}>
         <textarea
-          ref={input} rows={1} value={text} placeholder="Ask about a country…" aria-label="Question"
+          ref={input} rows={1} value={text} placeholder="Write to NIRAN…" aria-label="Message"
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(text); } }}
         />

@@ -13,8 +13,8 @@ export interface Alert {
   observed: string; source: string; contact: string | null; map: string; watch_reason: string; channels: string[];
 }
 export interface ChatMessage { role: 'user' | 'assistant'; content: string }
-export interface ChatAction { type: 'watch'; region_id: string; name: string; reason: string }
-export interface ChatResponse { reply: string; regionId: string | null; actions: ChatAction[]; engine: string; sources: string[]; live_updated: string | null }
+export interface ChatAction { type: 'watch' | 'unwatch'; region_id: string; name: string; reason: string }
+export interface ChatResponse { reply: string; regionId: string | null; actions: ChatAction[]; steps: string[]; engine: string; live_updated: string | null }
 
 async function json<T>(url: string, init?: RequestInit): Promise<T> {
   const r = await fetch(url, init);

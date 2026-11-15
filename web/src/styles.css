@@ -944,3 +944,14 @@ td { font-family: var(--mono); white-space: nowrap; }
 .stats.pop-stats .stats-period dt { color: color-mix(in srgb, var(--bg) 70%, var(--ink)); }
 .stats.pop-stats .stats-period dd { color: var(--bg); }
 .app.is-popped .globe-top, .app.is-popped .globe-bottom { opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+
+/* agent: tool steps, rich replies */
+.agent-head-tools { display: flex; align-items: center; gap: 10px; flex-direction: row !important; }
+.agent-new { font-size: 0.8125rem; }
+.agent-steps { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.agent-steps li { padding: 2px 8px; border-radius: 999px; background: var(--band); color: var(--accent); font: 500 0.6875rem var(--mono); }
+.agent-steps li::before { content: '✓ '; }
+.agent-assistant p + p, .agent-assistant p + ul, .agent-assistant p + ol, .agent-assistant ul + p, .agent-assistant ol + p { margin-top: 8px; }
+.agent-assistant ul, .agent-assistant ol { margin: 6px 0 0; padding-left: 18px; }
+.agent-assistant li { margin: 2px 0; }
+.agent-panel { width: min(460px, calc(100vw - 32px)); }
