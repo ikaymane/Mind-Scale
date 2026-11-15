@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 import { LevelBadge } from '../components/Level';
 import { LEVELS, type Level } from '../levels';
 import { api, usePoll, useStream, type Alert, type LogEntry } from '../lib/api';
+import { AgentStage } from '../agent/AgentStage';
 
 const STEPS = [
   { name: 'Sense', line: 'Every 10 minutes the server reads NASA FIRMS near-real-time detections and compares the last 7 days with the same days in the 2020–2025 archive.' },
@@ -37,6 +38,7 @@ function Activity({ logs }: { logs: LogEntry[] | null | undefined }) {
         <strong>Agent activity</strong>
         <span className={`activity-state ${busy ? 'is-busy' : ''}`}>{busy ? 'reading NASA FIRMS…' : 'idle · next read on schedule'}</span>
       </header>
+      <AgentStage logs={logs} />
       {logs === null ? <p className="footnote">Server not reachable.</p> : (
         <ol ref={box} aria-live="polite">
           {(logs ?? []).map((l, i) => (
