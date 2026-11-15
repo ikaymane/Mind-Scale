@@ -47,7 +47,12 @@ export function usePoll<T>(fn: () => Promise<T>, ms: number, deps: unknown[] = [
   return [v, () => setTick((t) => t + 1)];
 }
 
-export interface LogEntry { t: string; kind: 'cycle' | 'fetch' | 'sense' | 'watch' | 'check' | 'alert' | 'error'; text: string; region_id?: string }
+export interface LogEntry {
+  t: string; kind: 'cycle' | 'fetch' | 'sense' | 'watch' | 'check' | 'alert' | 'error'; text: string; region_id?: string;
+  /** structured numbers sent with some events (fetch / sense / check / alert) */
+  name?: string; feed?: string; worldwide?: number; kept?: number; level?: string | null; n?: number; usual?: number | null;
+  detections?: number; newer?: number; first?: boolean; cells?: number; confirmed?: number; sending?: number; contact?: string | null; severity?: string;
+}
 
 /** Alerts + the agent's activity log: initial lists, then Server-Sent Events as they happen. */
 export function useStream(): { alerts: Alert[] | null | undefined; logs: LogEntry[] | null | undefined } {

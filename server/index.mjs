@@ -170,7 +170,7 @@ async function pull(label, url, kind) {
   const text = await fetchText(url);
   const rows = text.split('\n').length - 2;
   const kept = parseFirms(text, kind);
-  log('fetch', `${label}: ${fmt(rows)} detections worldwide (${(text.length / 1e6).toFixed(1)} MB, ${((Date.now() - t0) / 1000).toFixed(1)} s) → ${fmt(kept.length)} inside our countries`);
+  log('fetch', `${label}: ${fmt(rows)} detections worldwide (${(text.length / 1e6).toFixed(1)} MB, ${((Date.now() - t0) / 1000).toFixed(1)} s) → ${fmt(kept.length)} inside our countries`, { feed: label, worldwide: rows, kept: kept.length });
   return kept;
 }
 async function refreshLive() {
@@ -191,7 +191,7 @@ async function refreshLive() {
   live.error = results.filter((r) => r.status === 'rejected').map((r) => String(r.reason?.message ?? r.reason)).join('; ') || null;
   live.status = computeStatus();
   for (const s of live.status) {
-    log('sense', `${s.name}: ${fmt(s.n)} MODIS detections in the last 7 days; usual for these days ${s.usual === null ? 'unknown' : fmt(s.usual)} (median of ${s.refYears} archive years) → ${s.level ?? 'unknown'}`, { region_id: s.region_id });
+    log('sense', `${s.name}: ${fmt(s.n)} MODIS detections in the last 7 days; usual for these days ${s.usual === null ? 'unknown' : fmt(s.usual)} (median of ${s.refYears} archive years) → ${s.level ?? 'unknown'}`, { region_id: s.region_id, name: s.name, level: s.level, n: s.n, usual: s.usual });
   }
 }
 
@@ -254,7 +254,7 @@ async function dispatch(alert) {
   alerts.length = Math.min(alerts.length, 200);
   const msg = `data: ${JSON.stringify(alert)}\n\n`;
   for (const res of sse) res.write(msg);
-  log('alert', `ALERT → ${alert.contact ?? 'fire service'}: ${alert.severity} fire in ${alert.area}, ${alert.detections} detections, ${fmt(alert.frp_mw)} MW, at ${alert.lat}, ${alert.lon}, seen ${alert.observed}. Sent to the console.`, { region_id: alert.region_id, alert_id: alert.id });
+  log('alert', `ALERT → ${alert.contact ?? 'fire service'}: ${alert.severity} fire in ${alert.area}, ${alert.detections} detections, ${fmt(alert.frp_mw)} MW, at ${alert.lat}, ${alert.lon}, seen ${alert.observed}. Sent to the console.`, { region_id: alert.region_id, alert_id: alert.id, name: alert.area, contact: alert.contact, severity: alert.severity });
   if (!WEBHOOK) return;
   try {
     const r = await fetch(WEBHOOK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(alert) });
@@ -278,7 +278,7 @@ async function runWatch() {
     const confirmed = cells.filter((c) => c.confirmed);
     const fresh = confirmed.filter((c) => !alerted.has(c.key)).sort((a, b) => b.frp - a.frp).slice(0, MAX_ALERTS_PER_RUN);
     const hhmm = (s) => `${s.slice(0, 10)} ${s.slice(10, 12)}:${s.slice(12, 14)} UTC`;   // stamp = "YYYY-MM-DD" + "HHMM"
-    log('check', `${w.name}: ${fmt(pts.length)} VIIRS detections in the last 24 h${first ? '' : `, ${fmt(newer.length)} newer than the last check (${hhmm(w.seenUntil)})`} → ${fmt(cells.length)} cells of ~10 km → ${fmt(confirmed.length)} confirmed fires (≥ 2 detections or ≥ ${STRONG_FRP} MW) → ${fresh.length ? `sending the ${fresh.length} strongest to the fire service` : 'nothing new to send'}`, { region_id: w.region_id });
+    log('check', `${w.name}: ${fmt(pts.length)} VIIRS detections in the last 24 h${first ? '' : `, ${fmt(newer.length)} newer than the last check (${hhmm(w.seenUntil)})`} → ${fmt(cells.length)} cells of ~10 km → ${fmt(confirmed.length)} confirmed fires (≥ 2 detections or ≥ ${STRONG_FRP} MW) → ${fresh.length ? `sending the ${fresh.length} strongest to the fire service` : 'nothing new to send'}`, { region_id: w.region_id, name: w.name, detections: pts.length, newer: newer.length, first, cells: cells.length, confirmed: confirmed.length, sending: fresh.length });
     if (pts.length) w.seenUntil = pts.reduce((m, p) => (stamp(p) > m ? stamp(p) : m), w.seenUntil ?? '');
     for (const c of fresh) {
       alerted.set(c.key, Date.now());

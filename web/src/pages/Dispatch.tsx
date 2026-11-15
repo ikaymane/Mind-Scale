@@ -2,11 +2,10 @@
  * Fire-service console: what the fire brigade sees. Live status per country (NASA FIRMS, last 7 days vs usual),
  * the agent's watch list, and the alerts it sent, streamed from the server as they happen.
  */
-import { useEffect, useRef } from 'react';
 import { LevelBadge } from '../components/Level';
 import { LEVELS, type Level } from '../levels';
-import { api, usePoll, useStream, type Alert, type LogEntry } from '../lib/api';
-import { AgentStage } from '../agent/AgentStage';
+import { api, usePoll, useStream, type Alert, type LogEntry, type Watch } from '../lib/api';
+import { AgentPipeline } from '../agent/AgentPipeline';
 
 const STEPS = [
   { name: 'Sense', line: 'Every 10 minutes the server reads NASA FIRMS near-real-time detections and compares the last 7 days with the same days in the 2020–2025 archive.' },
@@ -23,13 +22,8 @@ function SeverityTag({ s }: { s: Alert['severity'] }) {
   return <span className={`sev sev-${style}`}>{s}</span>;
 }
 
-const KIND_LABEL: Record<LogEntry['kind'], string> = { cycle: 'agent', fetch: 'NASA', sense: 'sense', watch: 'watch', check: 'confirm', alert: 'notify', error: 'error' };
-const clock = (iso: string) => new Date(iso).toISOString().slice(11, 19);
-
-/** The agent's work, line by line: downloads, counts, checks, alerts. Newest at the bottom, like a terminal. */
-function Activity({ logs }: { logs: LogEntry[] | null | undefined }) {
-  const box = useRef<HTMLOListElement>(null);
-  useEffect(() => { const b = box.current; if (b) b.scrollTop = b.scrollHeight; }, [logs?.length]);
+/** The agent's latest run as a pipeline; each step opens its details. */
+function Activity({ logs, watches, alerts }: { logs: LogEntry[] | null | undefined; watches: Watch[] | null | undefined; alerts: Alert[] | null | undefined }) {
   const lastCycle = [...(logs ?? [])].reverse().find((l) => l.kind === 'cycle');
   const busy = !!lastCycle && !lastCycle.text.startsWith('Cycle done');
   return (
@@ -38,18 +32,7 @@ function Activity({ logs }: { logs: LogEntry[] | null | undefined }) {
         <strong>Agent activity</strong>
         <span className={`activity-state ${busy ? 'is-busy' : ''}`}>{busy ? 'reading NASA FIRMS…' : 'idle · next read on schedule'}</span>
       </header>
-      <AgentStage logs={logs} />
-      {logs === null ? <p className="footnote">Server not reachable.</p> : (
-        <ol ref={box} aria-live="polite">
-          {(logs ?? []).map((l, i) => (
-            <li key={`${l.t}-${i}`} className={`log-${l.kind}`}>
-              <span className="log-time">{clock(l.t)}</span>
-              <span className="log-kind">{KIND_LABEL[l.kind]}</span>
-              <span className="log-text">{l.text}</span>
-            </li>
-          ))}
-        </ol>
-      )}
+      {logs === null ? <p className="footnote activity-off">Server not reachable.</p> : <AgentPipeline logs={logs} watches={watches} alerts={alerts} />}
     </aside>
   );
 }
@@ -143,7 +126,7 @@ export function Dispatch() {
         )}
       </section>
       </div>
-      <Activity logs={logs} />
+      <Activity logs={logs} watches={watches} alerts={alerts} />
       </div>
     </main>
   );
