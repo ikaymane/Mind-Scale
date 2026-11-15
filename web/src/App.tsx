@@ -10,6 +10,7 @@ import { Compare } from './pages/Compare';
 import { Method } from './pages/Method';
 import { Dispatch } from './pages/Dispatch';
 import { AgentPanel } from './agent/AgentPanel';
+import { Intro } from './components/Intro';
 
 export function App() {
   const tt = useT();
@@ -36,6 +37,7 @@ export function App() {
         page === 'home' ? <Home data={state.data} /> : page === 'dispatch' ? <Dispatch /> : page === 'method' ? <Method data={state.data} /> : page === 'compare' ? <Compare data={state.data} /> : <AppView data={state.data} />
       )}
       <AgentPanel />
+      <Intro ready={state.status !== 'loading'} tagline={tt.t('app.tagline')} regions={state.status === 'ready' ? state.data.regions : []} />
     </div>
   );
 }

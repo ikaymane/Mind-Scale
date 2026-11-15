@@ -1,0 +1,81 @@
+/* Entrance sequence (see Intro.tsx). The canvas paints everything that moves; this file only
+   lays out the text layers, whose opacity and transforms are driven per frame from the same clock.
+   Fixed dark palette on purpose: it has to read the same in the light and the dark theme. */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: hidden;
+  cursor: pointer;
+  background: #0B0D12; /* covers the page until the first canvas frame */
+  color: #F2F4F8;
+  font-family: var(--font);
+  user-select: none;
+}
+/* From here the canvas alone is the cover, so the iris can cut a real hole in it */
+.intro.is-open { background: transparent; pointer-events: none; }
+.intro-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.intro-hud,
+.intro-hint,
+.intro-tag,
+.intro-src {
+  font-family: var(--mono);
+  text-transform: uppercase;
+  opacity: 0;
+}
+.intro-hud { position: absolute; inset: 0; font-size: 0.6875rem; letter-spacing: 0.14em; color: #8E98AA; }
+.intro-hud-tl,
+.intro-hud-bl { position: absolute; left: clamp(20px, 4vw, 48px); display: flex; flex-direction: column; gap: 6px; }
+.intro-hud-tl { top: clamp(20px, 4vw, 44px); }
+.intro-hud-bl { bottom: clamp(20px, 4vw, 44px); }
+.intro-hud-tl span:first-child { color: #F2F4F8; }
+.intro-count {
+  font-size: clamp(1.75rem, 4.2vw, 2.75rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: #F2F4F8;
+  font-variant-numeric: tabular-nums;
+}
+.intro-region { min-height: 1em; color: #F0803C; }
+.intro-hint {
+  position: absolute;
+  right: clamp(20px, 4vw, 48px);
+  bottom: clamp(20px, 4vw, 44px);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  color: #8E98AA;
+}
+
+.intro-lockup {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  will-change: transform, opacity;
+}
+/* The flame is painted on the canvas exactly over this box */
+.intro-slot { width: 1px; height: clamp(64px, 11vh, 96px); margin-bottom: 26px; }
+.intro-word {
+  display: flex;
+  overflow: hidden;
+  margin: 0;
+  font-size: clamp(3rem, 10vw, 6.5rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  padding-left: 0.04em;
+}
+.intro-word span { display: block; transform: translateY(108%); will-change: transform; }
+.intro-tag { margin-top: 26px; font-size: 0.8125rem; letter-spacing: 0.22em; padding-left: 0.22em; }
+.intro-src { margin-top: 10px; font-size: 0.6875rem; letter-spacing: 0.14em; color: #8E98AA; }
+
+@media (max-width: 520px) {
+  .intro-tag { font-size: 0.6875rem; letter-spacing: 0.18em; }
+  .intro-hint { left: 0; right: 0; text-align: center; bottom: 14px; }
+  .intro-hud-bl { bottom: 44px; }
+}
