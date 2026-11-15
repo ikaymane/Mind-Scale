@@ -7,5 +7,7 @@ export default defineConfig({
   base: './',
   // dev: the NIRAN server (node server/index.mjs) answers /api
   server: { proxy: { '/api': 'http://localhost:8787' } },
-  build: { chunkSizeWarningLimit: 700, rollupOptions: { output: { manualChunks: { charts: ['recharts'], react: ['react', 'react-dom', 'zustand'] } } } },
+  // No manualChunks: splitting recharts from react made the two chunks import each
+  // other (shared CJS helpers), so `charts` evaluated before React → blank page in prod.
+  build: { chunkSizeWarningLimit: 1200 },
 });
